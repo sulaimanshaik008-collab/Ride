@@ -1,0 +1,23 @@
+# Build & Output directories
+target/
+dist/
+build/
+node_modules/
+.vite/
+
+# IDE / System files
+.idea/
+.vscode/
+*.swp
+*.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# Maven wrapper jar if binary
+.mvn/wrapper/maven-wrapper.jar
