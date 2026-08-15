@@ -1,0 +1,16 @@
+package com.corporate.rides.enums;
+
+public enum NotificationType {
+    RIDE_BOOKED,
+    RIDE_APPROVED,
+    RIDE_REJECTED,
+    RIDE_SCHEDULED,
+    RIDE_RESCHEDULED,
+    DRIVER_ASSIGNED,
+    VEHICLE_ASSIGNED,
+    TRIP_STARTED,
+    TRIP_COMPLETED,
+    TRIP_DELAYED,
+    RIDE_CANCELLED,
+    SYSTEM_ALERT
+}
