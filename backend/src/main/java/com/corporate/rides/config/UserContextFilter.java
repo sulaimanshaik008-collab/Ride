@@ -31,6 +31,15 @@ public class UserContextFilter extends OncePerRequestFilter {
             Optional<User> userOpt = userRepository.findByEmail(userEmail);
             if (userOpt.isPresent()) {
                 User user = userOpt.get();
+
+                if (user.getStatus() == com.corporate.rides.enums.UserStatus.DEACTIVATED ||
+                    user.getStatus() == com.corporate.rides.enums.UserStatus.SUSPENDED) {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"success\":false,\"message\":\"Account is " + user.getStatus().name().toLowerCase() + ". Please contact your corporate administrator.\"}");
+                    return;
+                }
+
                 UserPrincipal principal = UserPrincipal.builder()
                         .userId(user.getId())
                         .organizationId(user.getOrganization().getId())

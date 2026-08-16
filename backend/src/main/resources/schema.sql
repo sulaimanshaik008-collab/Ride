@@ -1,9 +1,14 @@
--- Schema definition for Supabase PostgreSQL / H2
 CREATE TABLE IF NOT EXISTS organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
     code VARCHAR(50) NOT NULL UNIQUE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    contact_email VARCHAR(150),
+    contact_phone VARCHAR(30),
+    address VARCHAR(255),
+    timezone VARCHAR(50) NOT NULL DEFAULT 'UTC',
+    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -14,8 +19,15 @@ CREATE TABLE IF NOT EXISTS users (
     phone_number VARCHAR(30),
     department VARCHAR(100),
     role VARCHAR(30) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+    verification_status VARCHAR(30) NOT NULL DEFAULT 'VERIFIED',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_users_org_role ON users(organization_id, role);
+CREATE INDEX IF NOT EXISTS idx_users_org_status ON users(organization_id, status);
+CREATE INDEX IF NOT EXISTS idx_orgs_code ON organizations(code);
 
 CREATE TABLE IF NOT EXISTS rides (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -187,10 +199,30 @@ CREATE POLICY notifications_user_update_policy ON notifications
     FOR UPDATE
     USING (recipient_user_id = (SELECT id FROM users WHERE id = auth.uid() OR email = current_setting('request.jwt.claims.email', true)));
 
-DROP POLICY IF EXISTS notifications_org_insert_policy ON notifications;
-CREATE POLICY notifications_org_insert_policy ON notifications
-    FOR INSERT
-    WITH CHECK (organization_id = (SELECT organization_id FROM users WHERE id = auth.uid() OR email = current_setting('request.jwt.claims.email', true)));
+CREATE TABLE IF NOT EXISTS ride_feedback (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    ride_id UUID NOT NULL REFERENCES rides(id) ON DELETE CASCADE,
+    employee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    driver_id UUID REFERENCES drivers(id) ON DELETE SET NULL,
+    vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL,
+    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comments VARCHAR(1000),
+    review_status VARCHAR(30) NOT NULL DEFAULT 'NORMAL',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_ride_feedback_ride_employee UNIQUE (ride_id, employee_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_org_id ON ride_feedback(organization_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_ride_id ON ride_feedback(ride_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_employee_id ON ride_feedback(employee_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_driver_id ON ride_feedback(driver_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_rating ON ride_feedback(rating);
+CREATE INDEX IF NOT EXISTS idx_feedback_review_status ON ride_feedback(review_status);
+CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON ride_feedback(created_at);
+
+ALTER TABLE ride_feedback ENABLE ROW LEVEL SECURITY;
 
 
 

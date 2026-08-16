@@ -19,6 +19,10 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
 
     List<Vehicle> findByOrganizationId(UUID organizationId);
 
+    long countByOrganizationId(UUID organizationId);
+
+    long countByOrganizationIdAndVehicleStatus(UUID organizationId, VehicleStatus vehicleStatus);
+
     Optional<Vehicle> findByIdAndOrganizationId(UUID id, UUID organizationId);
 
     boolean existsByOrganizationIdAndRegistrationNumber(UUID organizationId, String registrationNumber);

@@ -78,6 +78,19 @@ public class DataInitializer implements CommandLineRunner {
                     .phoneNumber("+1 (555) 019-3322")
                     .department("Transport Operations")
                     .role(UserRole.TRANSPORT_MANAGER)
+                    .status(com.corporate.rides.enums.UserStatus.ACTIVE)
+                    .verificationStatus(com.corporate.rides.enums.VerificationStatus.VERIFIED)
+                    .build());
+
+            userRepository.save(User.builder()
+                    .organization(acme)
+                    .email("admin.acme@corporate.com")
+                    .fullName("Eleanor Vance")
+                    .phoneNumber("+1 (555) 019-1100")
+                    .department("Corporate Administration")
+                    .role(UserRole.CORPORATE_ADMIN)
+                    .status(com.corporate.rides.enums.UserStatus.ACTIVE)
+                    .verificationStatus(com.corporate.rides.enums.VerificationStatus.VERIFIED)
                     .build());
 
             // Seed Drivers for Acme
@@ -171,6 +184,19 @@ public class DataInitializer implements CommandLineRunner {
                     .phoneNumber("+1 (555) 088-1122")
                     .department("Data Science")
                     .role(UserRole.EMPLOYEE)
+                    .status(com.corporate.rides.enums.UserStatus.ACTIVE)
+                    .verificationStatus(com.corporate.rides.enums.VerificationStatus.VERIFIED)
+                    .build());
+
+            userRepository.save(User.builder()
+                    .organization(techcorp)
+                    .email("admin.tech@corporate.com")
+                    .fullName("Sophia Thorne")
+                    .phoneNumber("+1 (555) 088-9900")
+                    .department("Executive Office")
+                    .role(UserRole.CORPORATE_ADMIN)
+                    .status(com.corporate.rides.enums.UserStatus.ACTIVE)
+                    .verificationStatus(com.corporate.rides.enums.VerificationStatus.VERIFIED)
                     .build());
 
             User techDriverUser1 = userRepository.save(User.builder()

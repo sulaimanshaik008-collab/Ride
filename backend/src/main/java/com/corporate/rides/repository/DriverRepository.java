@@ -17,6 +17,10 @@ public interface DriverRepository extends JpaRepository<Driver, UUID> {
 
     List<Driver> findByOrganizationId(UUID organizationId);
 
+    long countByOrganizationId(UUID organizationId);
+
+    long countByOrganizationIdAndDriverStatus(UUID organizationId, DriverStatus driverStatus);
+
     Optional<Driver> findByIdAndOrganizationId(UUID id, UUID organizationId);
 
     Optional<Driver> findByUserId(UUID userId);
