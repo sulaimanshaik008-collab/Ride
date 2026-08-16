@@ -8,9 +8,12 @@ import { RideAssignmentPage } from './pages/RideAssignmentPage';
 import { DriverTripPage } from './pages/DriverTripPage';
 import { TripMonitoringPage } from './pages/TripMonitoringPage';
 import { NotificationsPage } from './pages/NotificationsPage';
-import { ReportingAnalyticsPage } from './pages/ReportingAnalyticsPage';
 import { DriverManagementPage } from './pages/DriverManagementPage';
-import { VehicleManagementPage } from './pages/VehicleManagementPage';
+import CorporateAdminDashboardPage from './pages/CorporateAdminDashboardPage';
+import OrganizationSettingsPage from './pages/OrganizationSettingsPage';
+import UserManagementPage from './pages/UserManagementPage';
+import FeedbackHistoryPage from './pages/FeedbackHistoryPage';
+import ManagerFeedbackPage from './pages/ManagerFeedbackPage';
 
 export const App = () => {
   return (
@@ -29,6 +32,11 @@ export const App = () => {
           <Route path="/analytics" element={<ReportingAnalyticsPage />} />
           <Route path="/drivers" element={<DriverManagementPage />} />
           <Route path="/vehicles" element={<VehicleManagementPage />} />
+          <Route path="/admin" element={<CorporateAdminDashboardPage />} />
+          <Route path="/admin/organization" element={<OrganizationSettingsPage />} />
+          <Route path="/admin/users" element={<UserManagementPage />} />
+          <Route path="/feedback" element={<FeedbackHistoryPage />} />
+          <Route path="/manager/feedback" element={<ManagerFeedbackPage />} />
           <Route path="*" element={<Navigate to="/book-ride" replace />} />
         </Routes>
       </main>

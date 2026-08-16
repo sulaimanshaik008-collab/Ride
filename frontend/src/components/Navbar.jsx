@@ -70,10 +70,15 @@ export const Navbar = () => {
           </NavLink>
         )}
 
-        {canSeeVehicles && (
-          <NavLink to="/vehicles" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <Car size={16} />
-            {isManager ? 'Manage Vehicles' : 'Vehicles'}
+        <NavLink to="/feedback" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+          <History size={16} />
+          My Feedback
+        </NavLink>
+
+        {isManager && (
+          <NavLink to="/manager/feedback" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            <Activity size={16} />
+            Feedback & Reviews
           </NavLink>
         )}
 
@@ -81,6 +86,13 @@ export const Navbar = () => {
           <NavLink to="/analytics" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             <BarChart3 size={16} />
             Reports & Analytics
+          </NavLink>
+        )}
+
+        {(currentUser?.role === 'CORPORATE_ADMIN' || currentUser?.role === 'SYSTEM_ADMIN') && (
+          <NavLink to="/admin" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            <Building size={16} />
+            Admin Center
           </NavLink>
         )}
       </nav>

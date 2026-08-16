@@ -3,6 +3,7 @@ import { Search, Calendar, Clock, MapPin, Navigation, XCircle, Eye, AlertTriangl
 import { rideService } from '../services/rideService';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
+import { RideFeedbackModal } from '../components/RideFeedbackModal';
 
 export const MyRidesPage = () => {
   const { currentUser } = useAuth();
@@ -14,6 +15,7 @@ export const MyRidesPage = () => {
 
   // Modal states
   const [selectedRide, setSelectedRide] = useState(null);
+  const [feedbackRideModal, setFeedbackRideModal] = useState(null);
   const [cancelRideModal, setCancelRideModal] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelLoading, setCancelLoading] = useState(false);
@@ -165,6 +167,16 @@ export const MyRidesPage = () => {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.85rem' }}>
+                {ride.status === 'COMPLETED' && (
+                  <button
+                    onClick={() => setFeedbackRideModal(ride)}
+                    className="btn btn-primary"
+                    style={{ padding: '0.45rem 0.9rem', fontSize: '0.82rem', background: '#fbbf24', color: '#111827', border: 'none' }}
+                  >
+                    ⭐ Rate Ride
+                  </button>
+                )}
+
                 <button onClick={() => setSelectedRide(ride)} className="btn btn-secondary" style={{ padding: '0.45rem 0.9rem', fontSize: '0.82rem' }}>
                   <Eye size={14} />
                   View Details
@@ -188,6 +200,15 @@ export const MyRidesPage = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* RIDE FEEDBACK MODAL */}
+      {feedbackRideModal && (
+        <RideFeedbackModal
+          ride={feedbackRideModal}
+          onClose={() => setFeedbackRideModal(null)}
+          onSuccess={() => fetchRides()}
+        />
       )}
 
       {/* RIDE DETAILS MODAL */}
