@@ -35,7 +35,11 @@ CREATE TABLE IF NOT EXISTS rides (
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     employee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     pickup_location VARCHAR(255) NOT NULL,
+    pickup_latitude DOUBLE PRECISION,
+    pickup_longitude DOUBLE PRECISION,
     destination VARCHAR(255) NOT NULL,
+    destination_latitude DOUBLE PRECISION,
+    destination_longitude DOUBLE PRECISION,
     booking_date DATE NOT NULL,
     pickup_time TIME NOT NULL,
     booking_notes VARCHAR(500),
@@ -159,6 +163,7 @@ CREATE TABLE IF NOT EXISTS ride_locations (
 CREATE INDEX IF NOT EXISTS idx_ride_locations_ride_id ON ride_locations(ride_id);
 CREATE INDEX IF NOT EXISTS idx_ride_locations_recorded_at ON ride_locations(recorded_at);
 CREATE INDEX IF NOT EXISTS idx_ride_locations_org_id ON ride_locations(organization_id);
+CREATE INDEX IF NOT EXISTS idx_ride_locations_ride_recorded ON ride_locations(ride_id, recorded_at DESC);
 
 ALTER TABLE ride_locations ENABLE ROW LEVEL SECURITY;
 

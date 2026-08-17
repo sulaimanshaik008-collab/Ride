@@ -32,7 +32,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<UserProfileDto>> login(@Valid @RequestBody LoginRequestDto request) {
-        UserProfileDto profile = authService.loginAsEmail(request.getEmail());
+        UserProfileDto profile = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success(profile, "Logged in successfully"));
     }
 }
