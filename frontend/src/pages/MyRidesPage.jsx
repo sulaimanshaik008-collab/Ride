@@ -4,6 +4,7 @@ import { rideService } from '../services/rideService';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
 import { RideFeedbackModal } from '../components/RideFeedbackModal';
+import { RideTrackingModal } from '../components/map/RideTrackingModal';
 
 export const MyRidesPage = () => {
   const { currentUser } = useAuth();
@@ -15,6 +16,7 @@ export const MyRidesPage = () => {
 
   // Modal states
   const [selectedRide, setSelectedRide] = useState(null);
+  const [trackingRide, setTrackingRide] = useState(null);
   const [feedbackRideModal, setFeedbackRideModal] = useState(null);
   const [cancelRideModal, setCancelRideModal] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -167,6 +169,17 @@ export const MyRidesPage = () => {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.85rem' }}>
+                {(ride.status === 'IN_PROGRESS' || ride.status === 'ASSIGNED') && (
+                  <button
+                    onClick={() => setTrackingRide(ride)}
+                    className="btn btn-primary"
+                    style={{ padding: '0.45rem 0.9rem', fontSize: '0.82rem', background: '#10b981', borderColor: '#10b981' }}
+                  >
+                    <Navigation size={14} />
+                    Live Track Driver
+                  </button>
+                )}
+
                 {ride.status === 'COMPLETED' && (
                   <button
                     onClick={() => setFeedbackRideModal(ride)}
@@ -200,6 +213,20 @@ export const MyRidesPage = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* LIVE TRACKING MODAL */}
+      {trackingRide && (
+        <RideTrackingModal
+          ride={trackingRide}
+          onClose={() => {
+            setTrackingRide(null);
+            fetchRides();
+          }}
+          onRateRide={(completedRide) => {
+            setFeedbackRideModal(completedRide);
+          }}
+        />
       )}
 
       {/* RIDE FEEDBACK MODAL */}
