@@ -43,8 +43,20 @@ public class Ride {
     @Column(name = "pickup_location", nullable = false, length = 255)
     private String pickupLocation;
 
+    @Column(name = "pickup_latitude")
+    private Double pickupLatitude;
+
+    @Column(name = "pickup_longitude")
+    private Double pickupLongitude;
+
     @Column(nullable = false, length = 255)
     private String destination;
+
+    @Column(name = "destination_latitude")
+    private Double destinationLatitude;
+
+    @Column(name = "destination_longitude")
+    private Double destinationLongitude;
 
     @Column(name = "booking_date", nullable = false)
     private LocalDate bookingDate;

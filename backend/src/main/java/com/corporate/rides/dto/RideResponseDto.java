@@ -24,7 +24,11 @@ public class RideResponseDto {
     private String employeeName;
     private String employeeEmail;
     private String pickupLocation;
+    private Double pickupLatitude;
+    private Double pickupLongitude;
     private String destination;
+    private Double destinationLatitude;
+    private Double destinationLongitude;
     private LocalDate bookingDate;
     private LocalTime pickupTime;
     private String bookingNotes;

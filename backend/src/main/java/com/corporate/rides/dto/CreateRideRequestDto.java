@@ -22,9 +22,15 @@ public class CreateRideRequestDto {
     @Size(min = 3, max = 255, message = "Pickup location must be between 3 and 255 characters")
     private String pickupLocation;
 
+    private Double pickupLatitude;
+    private Double pickupLongitude;
+
     @NotBlank(message = "Destination is required")
     @Size(min = 3, max = 255, message = "Destination must be between 3 and 255 characters")
     private String destination;
+
+    private Double destinationLatitude;
+    private Double destinationLongitude;
 
     @NotNull(message = "Booking date is required")
     @FutureOrPresent(message = "Booking date cannot be in the past")

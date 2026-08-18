@@ -7,6 +7,7 @@ import {
 import { rideService } from '../services/rideService';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
+import { MapView } from '../components/map/MapView';
 
 export const RideAssignmentPage = () => {
   const { currentUser } = useAuth();
@@ -440,6 +441,24 @@ export const RideAssignmentPage = () => {
               </div>
             ) : (
               <form onSubmit={handleAssignSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div style={{ marginBottom: '0.5rem' }}>
+                  <MapView
+                    center={(assignModalRide || replaceModalRide).pickupLongitude ? [(assignModalRide || replaceModalRide).pickupLongitude, (assignModalRide || replaceModalRide).pickupLatitude] : [80.2707, 13.0827]}
+                    zoom={12}
+                    pickupLocation={{
+                      address: (assignModalRide || replaceModalRide).pickupLocation,
+                      coordinates: (assignModalRide || replaceModalRide).pickupLongitude ? [(assignModalRide || replaceModalRide).pickupLongitude, (assignModalRide || replaceModalRide).pickupLatitude] : [80.2707, 13.0827],
+                    }}
+                    destinationLocation={{
+                      address: (assignModalRide || replaceModalRide).destination,
+                      coordinates: (assignModalRide || replaceModalRide).destinationLongitude ? [(assignModalRide || replaceModalRide).destinationLongitude, (assignModalRide || replaceModalRide).destinationLatitude] : [80.1709, 12.9941],
+                    }}
+                    showControls={false}
+                    showRouteInfo={true}
+                    styleOverrides={{ height: '220px' }}
+                  />
+                </div>
+
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
                   <div>Schedule Date & Time: <strong style={{ color: 'var(--accent-cyan)' }}>{(assignModalRide || replaceModalRide).bookingDate} at {(assignModalRide || replaceModalRide).pickupTime}</strong></div>
                   <div>Route: <strong>{(assignModalRide || replaceModalRide).pickupLocation}</strong> $\rightarrow$ <strong>{(assignModalRide || replaceModalRide).destination}</strong></div>

@@ -7,6 +7,7 @@ import {
 import { rideService } from '../services/rideService';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
+import { MapView } from '../components/map/MapView';
 
 export const RideSchedulingPage = () => {
   const { currentUser } = useAuth();
@@ -531,6 +532,24 @@ export const RideSchedulingPage = () => {
             </div>
 
             {formError && <div className="alert alert-error">{formError}</div>}
+
+            <div style={{ marginBottom: '1.25rem' }}>
+              <MapView
+                center={scheduleModalRide.pickupLongitude ? [scheduleModalRide.pickupLongitude, scheduleModalRide.pickupLatitude] : [80.2707, 13.0827]}
+                zoom={12}
+                pickupLocation={{
+                  address: scheduleModalRide.pickupLocation,
+                  coordinates: scheduleModalRide.pickupLongitude ? [scheduleModalRide.pickupLongitude, scheduleModalRide.pickupLatitude] : [80.2707, 13.0827],
+                }}
+                destinationLocation={{
+                  address: scheduleModalRide.destination,
+                  coordinates: scheduleModalRide.destinationLongitude ? [scheduleModalRide.destinationLongitude, scheduleModalRide.destinationLatitude] : [80.1709, 12.9941],
+                }}
+                showControls={false}
+                showRouteInfo={true}
+                styleOverrides={{ height: '240px' }}
+              />
+            </div>
 
             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-sm)', padding: '0.85rem', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
               <div style={{ marginBottom: '0.4rem' }}>

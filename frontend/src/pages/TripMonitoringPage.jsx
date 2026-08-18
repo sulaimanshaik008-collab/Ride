@@ -6,6 +6,7 @@ import {
 import { rideService } from '../services/rideService';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
+import { MapView } from '../components/map/MapView';
 
 export const TripMonitoringPage = () => {
   const { currentUser } = useAuth();
@@ -273,6 +274,35 @@ export const TripMonitoringPage = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Status:</span>
                 <StatusBadge status={selectedRideModal.status} />
+              </div>
+
+              {/* LIVE MAPVIEW FOR MONITORING */}
+              <div style={{ marginBottom: '0.5rem' }}>
+                <MapView
+                  center={selectedRideModal.pickupLongitude ? [selectedRideModal.pickupLongitude, selectedRideModal.pickupLatitude] : [80.2707, 13.0827]}
+                  zoom={12}
+                  pickupLocation={{
+                    address: selectedRideModal.pickupLocation,
+                    coordinates: selectedRideModal.pickupLongitude ? [selectedRideModal.pickupLongitude, selectedRideModal.pickupLatitude] : [80.2707, 13.0827],
+                  }}
+                  destinationLocation={{
+                    address: selectedRideModal.destination,
+                    coordinates: selectedRideModal.destinationLongitude ? [selectedRideModal.destinationLongitude, selectedRideModal.destinationLatitude] : [80.1709, 12.9941],
+                  }}
+                  driverLocation={
+                    locationsMap[selectedRideModal.id] && locationsMap[selectedRideModal.id].latitude !== 0
+                      ? {
+                          coordinates: [locationsMap[selectedRideModal.id].longitude, locationsMap[selectedRideModal.id].latitude],
+                          speed: locationsMap[selectedRideModal.id].speed,
+                          heading: locationsMap[selectedRideModal.id].heading,
+                          isStale: staleMap[selectedRideModal.id],
+                        }
+                      : null
+                  }
+                  showControls={false}
+                  showRouteInfo={true}
+                  styleOverrides={{ height: '320px' }}
+                />
               </div>
 
               <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-sm)', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
