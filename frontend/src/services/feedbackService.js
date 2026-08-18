@@ -2,7 +2,7 @@ import { apiFetch } from './api';
 
 export const feedbackService = {
   submitFeedback: async ({ rideId, rating, comments }) => {
-    const res = await apiFetch('/api/v1/feedback', {
+    const res = await apiFetch('/feedback', {
       method: 'POST',
       body: JSON.stringify({ rideId, rating, comments }),
     });
@@ -10,12 +10,12 @@ export const feedbackService = {
   },
 
   getMyFeedbackHistory: async () => {
-    const res = await apiFetch('/api/v1/feedback/my');
+    const res = await apiFetch('/feedback/my');
     return res.data;
   },
 
   getFeedbackById: async (id) => {
-    const res = await apiFetch(`/api/v1/feedback/${id}`);
+    const res = await apiFetch(`/feedback/${id}`);
     return res.data;
   },
 
@@ -29,25 +29,26 @@ export const feedbackService = {
     params.append('page', page);
     params.append('size', size);
 
-    const res = await apiFetch(`/api/v1/feedback?${params.toString()}`);
+    const res = await apiFetch(`/feedback?${params.toString()}`);
     return res.data;
   },
 
   getFeedbackSummary: async () => {
-    const res = await apiFetch('/api/v1/feedback/summary');
+    const res = await apiFetch('/feedback/summary');
     return res.data;
   },
 
   getFeedbackIntelligence: async () => {
-    const res = await apiFetch('/api/v1/feedback/intelligence');
+    const res = await apiFetch('/feedback/intelligence');
     return res.data;
   },
 
   updateReviewStatus: async (id, reviewStatus) => {
-    const res = await apiFetch(`/api/v1/feedback/${id}/review`, {
+    const res = await apiFetch(`/feedback/${id}/review`, {
       method: 'PATCH',
       body: JSON.stringify({ reviewStatus }),
     });
     return res.data;
   },
 };
+

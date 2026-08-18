@@ -322,7 +322,7 @@ export default function UserManagementPage() {
                   className="form-control"
                   value={newUser.phoneNumber}
                   onChange={(e) => setNewUser({ ...newUser, phoneNumber: e.target.value })}
-                  placeholder="+1 (555) 019-2834"
+                  placeholder="+91 98765 43210"
                 />
               </div>
 

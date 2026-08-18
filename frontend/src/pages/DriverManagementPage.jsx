@@ -429,7 +429,7 @@ export const DriverManagementPage = () => {
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="+1 (555) 019-2834"
+                  placeholder="+91 98765 43210"
                   value={formData.phoneNumber}
                   onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                   required

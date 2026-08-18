@@ -135,7 +135,7 @@ export default function OrganizationSettingsPage() {
                 className="form-control"
                 value={formData.contactPhone}
                 onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-                placeholder="+1 (555) 000-0000"
+                placeholder="+91 98765 43210"
               />
             </div>
           </div>
