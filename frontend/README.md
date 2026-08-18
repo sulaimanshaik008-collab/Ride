@@ -1,16 +1,31 @@
-# React + Vite
+# Corporate Rides Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Enterprise Ride-Sharing and Corporate Fleet Management Platform with Google Maps.
 
-Currently, two official plugins are available:
+## Google Maps Configuration
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The frontend uses `@vis.gl/react-google-maps` and Google Maps JavaScript API for interactive map rendering, draggable pickup/destination markers, Places autocomplete, and driving route calculation.
 
-## React Compiler
+### Required Google Cloud APIs
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+In your Google Cloud Console project, enable the following APIs:
 
-## Expanding the Oxlint configuration
+1. **Maps JavaScript API**: Renders interactive map canvas and markers.
+2. **Places API (New) / Places API**: Powers location search and autocomplete suggestions.
+3. **Geocoding API**: Provides forward and reverse geocoding (coordinates to readable addresses).
+4. **Routes API / Directions API**: Computes optimal driving routes, distance (km), and travel duration (ETA).
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+### Environment Variables
+
+Set your API key in `frontend/.env`:
+
+```env
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+```
+
+### Security & API Key Restrictions
+
+Because frontend API keys are loaded by the client browser at runtime, apply the following restrictions in Google Cloud Console:
+
+1. **Application Restrictions**: Set HTTP Referrers to allowed domains (e.g. `http://localhost:*`, `https://your-domain.com/*`).
+2. **API Restrictions**: Restrict the key to only the 4 required APIs listed above.

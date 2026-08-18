@@ -9,38 +9,54 @@ import { DriverTripPage } from './pages/DriverTripPage';
 import { TripMonitoringPage } from './pages/TripMonitoringPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { DriverManagementPage } from './pages/DriverManagementPage';
+import { VehicleManagementPage } from './pages/VehicleManagementPage';
+import { ReportingAnalyticsPage } from './pages/ReportingAnalyticsPage';
 import CorporateAdminDashboardPage from './pages/CorporateAdminDashboardPage';
 import OrganizationSettingsPage from './pages/OrganizationSettingsPage';
 import UserManagementPage from './pages/UserManagementPage';
 import FeedbackHistoryPage from './pages/FeedbackHistoryPage';
 import ManagerFeedbackPage from './pages/ManagerFeedbackPage';
+import LoginPage from './pages/LoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import MapDemoPage from './pages/MapDemoPage';
 
 export const App = () => {
   return (
-    <div className="app-container">
-      <Navbar />
-      <main className="main-content">
-        <Routes>
-          <Route path="/" element={<Navigate to="/book-ride" replace />} />
-          <Route path="/book-ride" element={<BookRidePage />} />
-          <Route path="/my-rides" element={<MyRidesPage />} />
-          <Route path="/scheduling" element={<RideSchedulingPage />} />
-          <Route path="/assignments" element={<RideAssignmentPage />} />
-          <Route path="/driver-trips" element={<DriverTripPage />} />
-          <Route path="/monitoring" element={<TripMonitoringPage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/analytics" element={<ReportingAnalyticsPage />} />
-          <Route path="/drivers" element={<DriverManagementPage />} />
-          <Route path="/vehicles" element={<VehicleManagementPage />} />
-          <Route path="/admin" element={<CorporateAdminDashboardPage />} />
-          <Route path="/admin/organization" element={<OrganizationSettingsPage />} />
-          <Route path="/admin/users" element={<UserManagementPage />} />
-          <Route path="/feedback" element={<FeedbackHistoryPage />} />
-          <Route path="/manager/feedback" element={<ManagerFeedbackPage />} />
-          <Route path="*" element={<Navigate to="/book-ride" replace />} />
-        </Routes>
-      </main>
-    </div>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route
+        path="/*"
+        element={
+          <div className="app-container">
+            <Navbar />
+            <main className="main-content">
+              <Routes>
+                <Route path="/" element={<Navigate to="/book-ride" replace />} />
+                <Route path="/book-ride" element={<BookRidePage />} />
+                <Route path="/my-rides" element={<MyRidesPage />} />
+                <Route path="/scheduling" element={<RideSchedulingPage />} />
+                <Route path="/assignments" element={<RideAssignmentPage />} />
+                <Route path="/driver-trips" element={<DriverTripPage />} />
+                <Route path="/monitoring" element={<TripMonitoringPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/analytics" element={<ReportingAnalyticsPage />} />
+                <Route path="/drivers" element={<DriverManagementPage />} />
+                <Route path="/vehicles" element={<VehicleManagementPage />} />
+                <Route path="/admin" element={<CorporateAdminDashboardPage />} />
+                <Route path="/admin/organization" element={<OrganizationSettingsPage />} />
+                <Route path="/admin/users" element={<UserManagementPage />} />
+                <Route path="/feedback" element={<FeedbackHistoryPage />} />
+                <Route path="/manager/feedback" element={<ManagerFeedbackPage />} />
+                <Route path="/map-demo" element={<MapDemoPage />} />
+                <Route path="*" element={<Navigate to="/book-ride" replace />} />
+              </Routes>
+            </main>
+          </div>
+        }
+      />
+    </Routes>
   );
 };
 export default App;
