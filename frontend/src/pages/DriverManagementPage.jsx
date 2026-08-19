@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, Search, Filter, ShieldCheck, ShieldAlert, 
   Calendar, Phone, Mail, Award, CheckCircle, XCircle, AlertTriangle, 
-  RefreshCw, Edit3, Eye, Clock, UserCheck, Activity, Building
+  RefreshCw, Edit3, Eye, Clock, UserCheck, Activity, Building, X
 } from 'lucide-react';
 import { driverService } from '../services/driverService';
 import { useAuth } from '../context/AuthContext';
@@ -176,12 +176,12 @@ export const DriverManagementPage = () => {
 
   if (!isManager) {
     return (
-      <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
+      <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '20px', textAlign: 'center', padding: '3rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
         <ShieldAlert size={48} color="#ef4444" style={{ margin: '0 auto 1rem' }} />
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', marginBottom: '0.5rem' }}>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f2920', marginBottom: '0.5rem' }}>
           Access Restricted
         </h2>
-        <p style={{ color: 'var(--text-muted)' }}>
+        <p style={{ color: '#64748b' }}>
           Driver management is reserved for Transport Managers and Corporate Administrators.
         </p>
       </div>
@@ -189,75 +189,119 @@ export const DriverManagementPage = () => {
   }
 
   return (
-    <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 className="page-title">Driver Roster & Management</h1>
-          <p className="page-subtitle">
+          <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0f2920', margin: 0, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <Users size={28} color="#059669" />
+            <span>Driver Roster & Management</span>
+          </h1>
+          <p style={{ color: '#64748b', margin: '0.35rem 0 0', fontSize: '0.9rem', fontWeight: 500 }}>
             Manage corporate drivers, driver status, license compliance, and availability for trip assignments.
           </p>
         </div>
 
-        <button onClick={handleOpenCreate} className="btn btn-primary">
+        <button
+          type="button"
+          onClick={handleOpenCreate}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: 'linear-gradient(180deg, #184738 0%, #103327 100%)',
+            color: '#ffffff',
+            border: 'none',
+            padding: '0.65rem 1.25rem',
+            borderRadius: '10px',
+            fontWeight: 800,
+            fontSize: '0.875rem',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(19, 56, 44, 0.25)',
+          }}
+        >
           <UserPlus size={18} />
-          Register New Driver
+          <span>Register New Driver</span>
         </button>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && (
+        <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', color: '#ef4444', padding: '1rem 1.25rem', borderRadius: '12px', fontWeight: 700 }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       {/* KPI METRIC CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.75rem' }}>
-        <div className="glass-card" style={{ padding: '1.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+        <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>Total Roster</span>
-            <Users size={20} color="#6366f1" />
+            <span style={{ color: '#64748b', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase' }}>Total Roster</span>
+            <Users size={20} color="#2563eb" />
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: '#0f2920', marginTop: '0.35rem' }}>
             {totalDrivers}
           </div>
         </div>
 
-        <div className="glass-card" style={{ padding: '1.25rem' }}>
+        <div style={{ background: '#ffffff', border: '1.5px solid #a7f3d0', borderLeft: '4px solid #059669', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>Active Drivers</span>
-            <UserCheck size={20} color="#10b981" />
+            <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase' }}>Active Drivers</span>
+            <UserCheck size={20} color="#059669" />
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#34d399', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: '#059669', marginTop: '0.35rem' }}>
             {activeDrivers}
           </div>
         </div>
 
-        <div className="glass-card" style={{ padding: '1.25rem' }}>
+        <div style={{ background: '#ffffff', border: '1.5px solid #bfdbfe', borderLeft: '4px solid #2563eb', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>Available Now</span>
-            <Activity size={20} color="#06b6d4" />
+            <span style={{ color: '#2563eb', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase' }}>Available Now</span>
+            <Activity size={20} color="#2563eb" />
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#38bdf8', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: '#2563eb', marginTop: '0.35rem' }}>
             {availableDrivers}
           </div>
         </div>
 
-        <div className="glass-card" style={{ padding: '1.25rem' }}>
+        <div style={{ background: '#ffffff', border: `1.5px solid ${expiredLicenses > 0 ? '#fecaca' : '#e2e8f0'}`, borderLeft: expiredLicenses > 0 ? '4px solid #ef4444' : '1.5px solid #e2e8f0', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>Expired Licenses</span>
+            <span style={{ color: expiredLicenses > 0 ? '#ef4444' : '#64748b', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase' }}>Expired Licenses</span>
             <AlertTriangle size={20} color={expiredLicenses > 0 ? '#ef4444' : '#9ca3af'} />
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: expiredLicenses > 0 ? '#f87171' : '#fff', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: expiredLicenses > 0 ? '#ef4444' : '#0f2920', marginTop: '0.35rem' }}>
             {expiredLicenses}
           </div>
         </div>
       </div>
 
       {/* SEARCH AND FILTER BAR */}
-      <div className="glass-card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+      <div
+        style={{
+          background: '#ffffff',
+          border: '1.5px solid #e2e8f0',
+          borderRadius: '16px',
+          padding: '1.1rem 1.25rem',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+        }}
+      >
         <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
-            <Search size={16} color="#9ca3af" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+            <Search size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
-              className="form-control"
-              style={{ paddingLeft: '2.4rem', fontSize: '0.88rem' }}
+              style={{
+                width: '100%',
+                paddingLeft: '2.35rem',
+                paddingRight: '0.75rem',
+                paddingTop: '0.55rem',
+                paddingBottom: '0.55rem',
+                background: '#ffffff',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '8px',
+                color: '#0f172a',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                outline: 'none',
+              }}
               placeholder="Search by driver name, email, phone, or license..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -265,11 +309,20 @@ export const DriverManagementPage = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Filter size={14} color="#9ca3af" />
+            <Filter size={14} color="#64748b" />
             <select
-              className="tenant-select"
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
+              style={{
+                padding: '0.55rem 0.75rem',
+                background: '#ffffff',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '8px',
+                color: '#0f172a',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                outline: 'none',
+              }}
             >
               <option value="ALL">All Driver Statuses</option>
               <option value="ACTIVE">Active</option>
@@ -280,9 +333,18 @@ export const DriverManagementPage = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <select
-              className="tenant-select"
               value={selectedAvailability}
               onChange={(e) => setSelectedAvailability(e.target.value)}
+              style={{
+                padding: '0.55rem 0.75rem',
+                background: '#ffffff',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '8px',
+                color: '#0f172a',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                outline: 'none',
+              }}
             >
               <option value="ALL">All Availabilities</option>
               <option value="AVAILABLE">Available</option>
@@ -292,78 +354,160 @@ export const DriverManagementPage = () => {
             </select>
           </div>
 
-          <button type="submit" className="btn btn-secondary" style={{ padding: '0.55rem 1rem', fontSize: '0.85rem' }}>
+          <button
+            type="submit"
+            style={{
+              padding: '0.55rem 1.1rem',
+              borderRadius: '8px',
+              background: '#f8faf9',
+              border: '1.5px solid #e2e8f0',
+              color: '#0f2920',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+            }}
+          >
             <RefreshCw size={14} />
-            Search
+            <span>Search</span>
           </button>
         </form>
       </div>
 
       {/* DRIVER CARDS LIST */}
       {loading ? (
-        <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
-          <p style={{ color: 'var(--text-muted)' }}>Loading corporate drivers...</p>
+        <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '18px', textAlign: 'center', padding: '4rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+          <RefreshCw size={28} className="spin-animation" style={{ margin: '0 auto 0.75rem', color: '#059669' }} />
+          <p style={{ color: '#64748b', fontWeight: 600 }}>Loading corporate drivers...</p>
         </div>
       ) : drivers.length === 0 ? (
-        <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem', fontSize: '1.05rem', fontWeight: 600 }}>
+        <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '18px', textAlign: 'center', padding: '4rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+          <Users size={36} color="#059669" style={{ margin: '0 auto 0.75rem' }} />
+          <p style={{ color: '#0f2920', marginBottom: '0.25rem', fontSize: '1.1rem', fontWeight: 900 }}>
             No drivers found
           </p>
-          <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>
+          <p style={{ color: '#64748b', fontSize: '0.85rem' }}>
             No drivers match the selected search criteria or tenant organization.
           </p>
         </div>
       ) : (
-        <div className="rides-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1.25rem' }}>
           {drivers.map((driver) => (
-            <div key={driver.id} className="ride-card">
-              <div className="ride-card-header">
+            <div
+              key={driver.id}
+              style={{
+                background: '#ffffff',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '18px',
+                padding: '1.5rem',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>{driver.fullName}</h3>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{driver.department || 'Fleet Operations'}</span>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f2920', margin: 0 }}>{driver.fullName}</h3>
+                  <span style={{ fontSize: '0.825rem', color: '#64748b', fontWeight: 600 }}>{driver.department || 'Fleet Operations'}</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
-                  <span className={`status-badge ${driver.driverStatus}`}>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      padding: '0.25rem 0.65rem',
+                      borderRadius: '6px',
+                      background: driver.driverStatus === 'ACTIVE' ? '#ecfdf5' : '#fef2f2',
+                      color: driver.driverStatus === 'ACTIVE' ? '#059669' : '#ef4444',
+                      border: `1px solid ${driver.driverStatus === 'ACTIVE' ? '#a7f3d0' : '#fecaca'}`,
+                    }}
+                  >
                     {driver.driverStatus}
                   </span>
-                  <span className="preset-chip" style={{ fontSize: '0.72rem', background: 'rgba(6, 182, 212, 0.1)', color: '#38bdf8', borderColor: 'rgba(6, 182, 212, 0.3)' }}>
+                  <span
+                    style={{
+                      fontSize: '0.725rem',
+                      fontWeight: 800,
+                      padding: '0.2rem 0.55rem',
+                      borderRadius: '6px',
+                      background: driver.availabilityStatus === 'AVAILABLE' ? '#eff6ff' : '#f8faf9',
+                      color: driver.availabilityStatus === 'AVAILABLE' ? '#2563eb' : '#64748b',
+                      border: `1px solid ${driver.availabilityStatus === 'AVAILABLE' ? '#bfdbfe' : '#e2e8f0'}`,
+                    }}
+                  >
                     {driver.availabilityStatus.replace('_', ' ')}
                   </span>
                 </div>
               </div>
 
               {driver.isLicenseExpired && (
-                <div className="alert alert-error" style={{ padding: '0.5rem 0.75rem', margin: 0, fontSize: '0.78rem' }}>
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}>
                   <AlertTriangle size={14} />
-                  <strong>License Expired!</strong> Renewal required before trip assignment.
+                  <span><strong>License Expired!</strong> Renewal required before trip assignment.</span>
                 </div>
               )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem', color: 'var(--text-muted)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.85rem' }}>
-                <div className="meta-item">
-                  <Mail size={14} color="#6366f1" />
-                  <span>{driver.email}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: '#64748b', borderTop: '1.5px solid #f1f5f9', paddingTop: '0.85rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Mail size={14} color="#2563eb" />
+                  <span style={{ color: '#0f2920', fontWeight: 600 }}>{driver.email}</span>
                 </div>
-                <div className="meta-item">
-                  <Phone size={14} color="#10b981" />
-                  <span>{driver.phoneNumber}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Phone size={14} color="#059669" />
+                  <span style={{ color: '#0f2920', fontWeight: 600 }}>{driver.phoneNumber}</span>
                 </div>
-                <div className="meta-item">
-                  <Award size={14} color="#f59e0b" />
-                  <span>License: <strong style={{ color: 'var(--accent-cyan)' }}>{driver.licenseNumber}</strong> (Expires: {driver.licenseExpiryDate})</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Award size={14} color="#d97706" />
+                  <span>License: <strong style={{ color: '#0f2920' }}>{driver.licenseNumber}</strong> (Expires: {driver.licenseExpiryDate})</span>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.85rem' }}>
-                <button onClick={() => setViewingDriver(driver)} className="btn btn-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1.5px solid #f1f5f9', paddingTop: '0.85rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setViewingDriver(driver)}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    color: '#0f2920',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}
+                >
                   <Eye size={14} />
-                  Details
-                </button>
-                <button onClick={() => handleOpenEdit(driver)} className="btn btn-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}>
-                  <Edit3 size={14} />
-                  Edit
+                  <span>Details</span>
                 </button>
                 <button
+                  type="button"
+                  onClick={() => handleOpenEdit(driver)}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    color: '#0f2920',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}
+                >
+                  <Edit3 size={14} />
+                  <span>Edit</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setStatusModalDriver(driver);
                     setStatusFormData({
@@ -373,8 +517,17 @@ export const DriverManagementPage = () => {
                     });
                     setFormError(null);
                   }}
-                  className="btn btn-primary"
-                  style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                  style={{
+                    padding: '0.45rem 0.95rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    background: 'linear-gradient(180deg, #184738 0%, #103327 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 10px rgba(19, 56, 44, 0.2)',
+                  }}
                 >
                   Status / Availability
                 </button>
@@ -387,94 +540,206 @@ export const DriverManagementPage = () => {
       {/* CREATE / EDIT DRIVER MODAL */}
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">{editingDriver ? 'Edit Driver Information' : 'Register New Corporate Driver'}</h2>
-              <button onClick={() => setShowCreateModal(false)} className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>
-                Close
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '560px',
+              width: '100%',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '20px',
+              padding: '2rem',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.2)',
+              color: '#0f2920',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f2920', margin: 0 }}>
+                {editingDriver ? 'Edit Driver Information' : 'Register New Corporate Driver'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
+              >
+                <X size={20} />
               </button>
             </div>
 
-            {formError && <div className="alert alert-error">{formError}</div>}
+            {formError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontWeight: 700, fontSize: '0.85rem' }}>
+                ⚠️ {formError}
+              </div>
+            )}
 
-            <form onSubmit={handleFormSubmit} className="form-grid">
-              <div className="form-group full-width">
-                <label className="form-label">Full Name *</label>
+            <form onSubmit={handleFormSubmit}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Full Name *</label>
                 <input
                   type="text"
-                  className="form-control"
                   placeholder="E.g., Michael Vance"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   required
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '8px',
+                    color: '#0f172a',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    outline: 'none',
+                  }}
                 />
               </div>
 
               {!editingDriver && (
-                <div className="form-group full-width">
-                  <label className="form-label">Email Address *</label>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Email Address *</label>
                   <input
                     type="email"
-                    className="form-control"
                     placeholder="driver@corporate.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: '#ffffff',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '8px',
+                      color: '#0f172a',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      outline: 'none',
+                    }}
                   />
                 </div>
               )}
 
-              <div className="form-group">
-                <label className="form-label">Phone Number *</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="+91 98765 43210"
-                  value={formData.phoneNumber}
-                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                  required
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Phone Number *</label>
+                  <input
+                    type="text"
+                    placeholder="+91 98765 43210"
+                    value={formData.phoneNumber}
+                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: '#ffffff',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '8px',
+                      color: '#0f172a',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Department</label>
+                  <input
+                    type="text"
+                    placeholder="Fleet Operations"
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: '#ffffff',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '8px',
+                      color: '#0f172a',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      outline: 'none',
+                    }}
+                  />
+                </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Department</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Fleet Operations"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>License Number *</label>
+                  <input
+                    type="text"
+                    placeholder="DL-890123-X"
+                    value={formData.licenseNumber}
+                    onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: '#ffffff',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '8px',
+                      color: '#0f172a',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>License Expiry Date *</label>
+                  <input
+                    type="date"
+                    value={formData.licenseExpiryDate}
+                    onChange={(e) => setFormData({ ...formData, licenseExpiryDate: e.target.value })}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: '#ffffff',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '8px',
+                      color: '#0f172a',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      outline: 'none',
+                    }}
+                  />
+                </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">License Number *</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="DL-890123-X"
-                  value={formData.licenseNumber}
-                  onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">License Expiry Date *</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={formData.licenseExpiryDate}
-                  onChange={(e) => setFormData({ ...formData, licenseExpiryDate: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="form-group full-width" style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
-                <button type="button" onClick={() => setShowCreateModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  style={{
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '8px',
+                    background: '#ffffff',
+                    color: '#64748b',
+                    border: '1.5px solid #e2e8f0',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={formLoading}>
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  style={{
+                    padding: '0.65rem 1.5rem',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(180deg, #184738 0%, #103327 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(19, 56, 44, 0.25)',
+                  }}
+                >
                   {formLoading ? 'Saving...' : editingDriver ? 'Update Driver' : 'Register Driver'}
                 </button>
               </div>
@@ -486,57 +751,76 @@ export const DriverManagementPage = () => {
       {/* DRIVER DETAILS MODAL */}
       {viewingDriver && (
         <div className="modal-overlay" onClick={() => setViewingDriver(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '20px',
+              padding: '2rem',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.2)',
+              color: '#0f2920',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h2 className="modal-title">{viewingDriver.fullName}</h2>
-                <span className="booking-ref" style={{ fontSize: '0.8rem', marginTop: '0.2rem' }}>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f2920', margin: 0 }}>{viewingDriver.fullName}</h2>
+                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
                   Driver ID: {viewingDriver.id.substring(0, 8)}
                 </span>
               </div>
-              <button onClick={() => setViewingDriver(null)} className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>
-                Close
+              <button
+                type="button"
+                onClick={() => setViewingDriver(null)}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
+              >
+                <X size={20} />
               </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', fontSize: '0.88rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Status:</span>
-                <span className={`status-badge ${viewingDriver.driverStatus}`}>{viewingDriver.driverStatus}</span>
+                <span style={{ color: '#64748b', fontWeight: 700 }}>Status:</span>
+                <span style={{ fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '6px', background: viewingDriver.driverStatus === 'ACTIVE' ? '#ecfdf5' : '#fef2f2', color: viewingDriver.driverStatus === 'ACTIVE' ? '#059669' : '#ef4444' }}>
+                  {viewingDriver.driverStatus}
+                </span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Availability:</span>
-                <strong style={{ color: 'var(--accent-cyan)' }}>{viewingDriver.availabilityStatus.replace('_', ' ')}</strong>
+                <span style={{ color: '#64748b', fontWeight: 700 }}>Availability:</span>
+                <strong style={{ color: '#2563eb' }}>{viewingDriver.availabilityStatus.replace('_', ' ')}</strong>
               </div>
 
-              <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-sm)', padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+              <div style={{ background: '#f8faf9', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Email</span>
-                  <strong style={{ color: '#fff' }}>{viewingDriver.email}</strong>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Email</span>
+                  <strong style={{ color: '#0f2920' }}>{viewingDriver.email}</strong>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Phone</span>
-                  <strong style={{ color: '#fff' }}>{viewingDriver.phoneNumber}</strong>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Phone</span>
+                  <strong style={{ color: '#0f2920' }}>{viewingDriver.phoneNumber}</strong>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Organization</span>
-                  <strong style={{ color: 'var(--accent-cyan)' }}>{viewingDriver.organizationName}</strong>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Organization</span>
+                  <strong style={{ color: '#059669' }}>{viewingDriver.organizationName}</strong>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Department</span>
-                  <strong style={{ color: '#fff' }}>{viewingDriver.department}</strong>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Department</span>
+                  <strong style={{ color: '#0f2920' }}>{viewingDriver.department}</strong>
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-sm)', padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+              <div style={{ background: '#f8faf9', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>License Number</span>
-                  <strong style={{ color: 'var(--accent-cyan)' }}>{viewingDriver.licenseNumber}</strong>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>License Number</span>
+                  <strong style={{ color: '#2563eb' }}>{viewingDriver.licenseNumber}</strong>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>License Expiry</span>
-                  <strong style={{ color: viewingDriver.isLicenseExpired ? '#f87171' : '#fff' }}>{viewingDriver.licenseExpiryDate}</strong>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>License Expiry</span>
+                  <strong style={{ color: viewingDriver.isLicenseExpired ? '#ef4444' : '#0f2920' }}>{viewingDriver.licenseExpiryDate}</strong>
                 </div>
               </div>
             </div>
@@ -547,23 +831,56 @@ export const DriverManagementPage = () => {
       {/* STATUS & AVAILABILITY CONTROL MODAL */}
       {statusModalDriver && (
         <div className="modal-overlay" onClick={() => setStatusModalDriver(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">Manage Driver Status — {statusModalDriver.fullName}</h2>
-              <button onClick={() => setStatusModalDriver(null)} className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>
-                Close
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '20px',
+              padding: '2rem',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.2)',
+              color: '#0f2920',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f2920', margin: 0 }}>
+                Manage Driver Status — {statusModalDriver.fullName}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setStatusModalDriver(null)}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
+              >
+                <X size={20} />
               </button>
             </div>
 
-            {formError && <div className="alert alert-error">{formError}</div>}
+            {formError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontWeight: 700, fontSize: '0.85rem' }}>
+                ⚠️ {formError}
+              </div>
+            )}
 
             <form onSubmit={handleStatusSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div className="form-group">
-                <label className="form-label">Driver Operational Status</label>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Driver Operational Status</label>
                 <select
-                  className="form-control"
                   value={statusFormData.driverStatus}
                   onChange={(e) => setStatusFormData({ ...statusFormData, driverStatus: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '8px',
+                    color: '#0f172a',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    outline: 'none',
+                  }}
                 >
                   <option value="ACTIVE">ACTIVE (Normal Duty)</option>
                   <option value="INACTIVE">INACTIVE (Off Roster / On Leave)</option>
@@ -571,12 +888,22 @@ export const DriverManagementPage = () => {
                 </select>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Availability Status</label>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Availability Status</label>
                 <select
-                  className="form-control"
                   value={statusFormData.availabilityStatus}
                   onChange={(e) => setStatusFormData({ ...statusFormData, availabilityStatus: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '8px',
+                    color: '#0f172a',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    outline: 'none',
+                  }}
                 >
                   <option value="AVAILABLE">AVAILABLE (Ready for assignment)</option>
                   <option value="UNAVAILABLE">UNAVAILABLE (Unavailable)</option>
@@ -585,22 +912,56 @@ export const DriverManagementPage = () => {
                 </select>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Reason / Notes (Optional)</label>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Reason / Notes (Optional)</label>
                 <textarea
-                  className="form-control"
                   rows={2}
                   placeholder="State reason for status update..."
                   value={statusFormData.statusNotes}
                   onChange={(e) => setStatusFormData({ ...statusFormData, statusNotes: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '8px',
+                    color: '#0f172a',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                  }}
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setStatusModalDriver(null)} className="btn btn-secondary" style={{ flex: 1 }}>
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setStatusModalDriver(null)}
+                  style={{
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '8px',
+                    background: '#ffffff',
+                    color: '#64748b',
+                    border: '1.5px solid #e2e8f0',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={formLoading}>
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  style={{
+                    padding: '0.65rem 1.5rem',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(180deg, #184738 0%, #103327 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(19, 56, 44, 0.25)',
+                  }}
+                >
                   {formLoading ? 'Updating...' : 'Save Changes'}
                 </button>
               </div>
@@ -611,3 +972,5 @@ export const DriverManagementPage = () => {
     </div>
   );
 };
+
+export default DriverManagementPage;

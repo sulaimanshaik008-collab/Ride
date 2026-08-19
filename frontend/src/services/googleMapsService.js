@@ -1,6 +1,6 @@
 /**
  * Google Maps Client Service
- * Handles Places Search, Geocoding, Reverse Geocoding, and Driving Directions API calls.
+ * Handles Places Autocomplete, Geocoding, Reverse Geocoding, Place Details, and Road Driving Directions.
  */
 
 const getApiKey = () => {
@@ -11,13 +11,103 @@ const getApiKey = () => {
   return key.trim();
 };
 
+let googleScriptLoadingPromise = null;
+
+export const loadGoogleMapsScript = () => {
+  if (typeof window === 'undefined') return Promise.resolve(null);
+  if (window.google?.maps?.places) return Promise.resolve(window.google.maps);
+  if (googleScriptLoadingPromise) return googleScriptLoadingPromise;
+
+  const apiKey = getApiKey();
+  if (!apiKey) return Promise.resolve(null);
+
+  googleScriptLoadingPromise = new Promise((resolve) => {
+    // Check if script tag already exists
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+    if (existingScript) {
+      if (window.google?.maps?.places) {
+        resolve(window.google.maps);
+        return;
+      }
+      existingScript.addEventListener('load', () => resolve(window.google?.maps || null));
+      existingScript.addEventListener('error', () => resolve(null));
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,routes,geometry,marker&loading=async`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      resolve(window.google?.maps || null);
+    };
+    script.onerror = (err) => {
+      console.warn('Failed to load Google Maps script dynamically:', err);
+      resolve(null);
+    };
+    document.head.appendChild(script);
+  });
+
+  return googleScriptLoadingPromise;
+};
+
+// Auto-trigger loading in background on file import
+if (typeof window !== 'undefined') {
+  loadGoogleMapsScript();
+}
+
+let autocompleteServiceInstance = null;
+let geocoderInstance = null;
+let placesServiceInstance = null;
+
+const getAutocompleteService = async () => {
+  if (typeof window === 'undefined') return null;
+  if (window.google?.maps?.places?.AutocompleteService) {
+    if (!autocompleteServiceInstance) {
+      autocompleteServiceInstance = new window.google.maps.places.AutocompleteService();
+    }
+    return autocompleteServiceInstance;
+  }
+  await loadGoogleMapsScript();
+  if (window.google?.maps?.places?.AutocompleteService) {
+    autocompleteServiceInstance = new window.google.maps.places.AutocompleteService();
+    return autocompleteServiceInstance;
+  }
+  return null;
+};
+
+const getGeocoder = async () => {
+  if (typeof window === 'undefined') return null;
+  if (window.google?.maps?.Geocoder) {
+    if (!geocoderInstance) {
+      geocoderInstance = new window.google.maps.Geocoder();
+    }
+    return geocoderInstance;
+  }
+  await loadGoogleMapsScript();
+  if (window.google?.maps?.Geocoder) {
+    geocoderInstance = new window.google.maps.Geocoder();
+    return geocoderInstance;
+  }
+  return null;
+};
+
+const getPlacesService = async () => {
+  if (typeof window === 'undefined') return null;
+  if (!placesServiceInstance && window.google?.maps?.places?.PlacesService) {
+    const dummyDiv = document.createElement('div');
+    placesServiceInstance = new window.google.maps.places.PlacesService(dummyDiv);
+  }
+  return placesServiceInstance;
+};
+
 export const googleMapsService = {
   /**
-   * Search for locations/addresses using Google Places Autocomplete & Geocoding
-   * Supports any city across India and worldwide.
-   * @param {string} query Search text
+   * Fast Google Places Autocomplete Suggestions across India
+   * Returns predictions instantly without slow parallel geocoding.
+   * @param {string} query Search query (e.g., "Tric", "Chennai Central", "MG Road Bengaluru")
    * @param {Object} options Optional search parameters
-   * @returns {Promise<Array<{ id: string, name: string, placeName: string, coordinates: [number, number] }>>}
+   * @returns {Promise<Array<{ id: string, placeId: string, name: string, secondaryText: string, placeName: string, types: string[] }>>}
    */
   searchPlaces: async (query, options = {}) => {
     if (!query || query.trim().length < 2) {
@@ -26,12 +116,10 @@ export const googleMapsService = {
 
     const cleanQuery = query.trim();
 
-    // 1. Try Google Maps Places Autocomplete Service in Browser
-    if (typeof window !== 'undefined' && window.google?.maps?.places?.AutocompleteService) {
-      try {
-        const autocompleteService = new window.google.maps.places.AutocompleteService();
-        const geocoder = new window.google.maps.Geocoder();
-
+    // 1. Google Places AutocompleteService (Instant India-wide suggestions)
+    try {
+      const autocompleteService = await getAutocompleteService();
+      if (autocompleteService) {
         const request = {
           input: cleanQuery,
           componentRestrictions: options.country ? { country: options.country } : { country: 'in' },
@@ -39,7 +127,11 @@ export const googleMapsService = {
 
         const predictions = await new Promise((resolve) => {
           autocompleteService.getPlacePredictions(request, (results, status) => {
-            if (status === window.google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+            if (
+              (status === window.google.maps.places.PlacesServiceStatus.OK || status === 'OK') &&
+              results &&
+              results.length > 0
+            ) {
               resolve(results);
             } else {
               resolve([]);
@@ -48,87 +140,185 @@ export const googleMapsService = {
         });
 
         if (predictions && predictions.length > 0) {
-          const detailedPlaces = await Promise.all(
-            predictions.slice(0, options.limit || 5).map(async (pred) => {
-              const geoRes = await new Promise((resGeo) => {
-                geocoder.geocode({ placeId: pred.place_id }, (geoResults, geoStatus) => {
-                  if (geoStatus === window.google.maps.GeocoderStatus.OK && geoResults?.[0]) {
-                    const loc = geoResults[0].geometry.location;
-                    resGeo([loc.lng(), loc.lat()]);
-                  } else {
-                    resGeo(null);
-                  }
-                });
-              });
+          return predictions.slice(0, options.limit || 6).map((pred) => {
+            const mainText =
+              pred.structured_formatting?.main_text ||
+              (pred.description.includes(',') ? pred.description.split(',')[0].trim() : pred.description);
 
-              return {
-                id: pred.place_id,
-                name: pred.structured_formatting?.main_text || pred.description,
-                placeName: pred.description,
-                coordinates: geoRes,
-              };
-            })
-          );
+            const secondaryText =
+              pred.structured_formatting?.secondary_text ||
+              (pred.description.includes(',')
+                ? pred.description.substring(pred.description.indexOf(',') + 1).trim()
+                : 'India');
 
-          // Filter only places with valid resolved coordinates
-          const validPlaces = detailedPlaces.filter((p) => p.coordinates !== null);
-          if (validPlaces.length > 0) {
-            return validPlaces;
-          }
+            return {
+              id: pred.place_id,
+              placeId: pred.place_id,
+              name: mainText,
+              secondaryText,
+              placeName: pred.description,
+              types: pred.types || [],
+            };
+          });
         }
-      } catch (err) {
-        console.warn('Google Places Autocomplete error:', err);
       }
+    } catch (err) {
+      console.warn('Google Places Autocomplete error:', err);
     }
 
-    // 2. Try Google Maps Geocoder Service (Works for ANY city, area, or address globally)
-    if (typeof window !== 'undefined' && window.google?.maps?.Geocoder) {
-      try {
-        const geocoder = new window.google.maps.Geocoder();
+    // 2. Geocoder fallback for address matching across India
+    try {
+      const geocoder = await getGeocoder();
+      if (geocoder) {
         const geocodeResults = await new Promise((resolve) => {
-          geocoder.geocode({ address: cleanQuery, componentRestrictions: { country: 'in' } }, (results, status) => {
-            if (status === window.google.maps.GeocoderStatus.OK && results && results.length > 0) {
-              resolve(results);
-            } else {
-              // Try without country restriction
-              geocoder.geocode({ address: cleanQuery }, (intlResults, intlStatus) => {
-                if (intlStatus === window.google.maps.GeocoderStatus.OK && intlResults) {
-                  resolve(intlResults);
-                } else {
-                  resolve([]);
-                }
-              });
+          geocoder.geocode(
+            { address: cleanQuery, componentRestrictions: { country: 'in' } },
+            (results, status) => {
+              if (status === window.google.maps.GeocoderStatus.OK && results && results.length > 0) {
+                resolve(results);
+              } else {
+                resolve([]);
+              }
             }
-          });
+          );
         });
 
         if (geocodeResults && geocodeResults.length > 0) {
-          return geocodeResults.slice(0, options.limit || 5).map((item) => ({
-            id: item.place_id,
-            name: item.formatted_address.split(',')[0],
-            placeName: item.formatted_address,
-            coordinates: [item.geometry.location.lng(), item.geometry.location.lat()],
-          }));
+          return geocodeResults.slice(0, options.limit || 5).map((item) => {
+            const parts = item.formatted_address.split(',');
+            const mainText = parts[0].trim();
+            const secondaryText = parts.slice(1).join(',').trim() || 'India';
+            return {
+              id: item.place_id,
+              placeId: item.place_id,
+              name: mainText,
+              secondaryText,
+              placeName: item.formatted_address,
+              coordinates: [item.geometry.location.lng(), item.geometry.location.lat()],
+              types: item.types || [],
+            };
+          });
         }
-      } catch (err) {
-        console.warn('Google Geocoder JS error:', err);
       }
+    } catch (err) {
+      console.warn('Google Geocoder fallback search error:', err);
     }
 
-    // 3. Fallback database for known presets or dynamic query location
+    // 3. Fallback database for offline/test environments
     return getFallbackSuggestions(cleanQuery);
   },
 
   /**
-   * Reverse geocode coordinates to a readable address/place name
+   * Resolve exact coordinates and full formatted address for a chosen place
+   * @param {string} placeId Google place ID or identifier
+   * @param {string} fallbackQuery Address text to geocode if placeId fails
+   * @returns {Promise<{ address: string, name: string, coordinates: [number, number], placeId: string }>}
+   */
+  getPlaceDetails: async (placeId, fallbackQuery = '') => {
+    // 1. Try Geocoder by placeId (fastest & most reliable)
+    try {
+      const geocoder = await getGeocoder();
+      if (geocoder && placeId) {
+        const result = await new Promise((resolve) => {
+          geocoder.geocode({ placeId }, (results, status) => {
+            if (status === window.google.maps.GeocoderStatus.OK && results?.[0]) {
+              const loc = results[0].geometry.location;
+              resolve({
+                address: results[0].formatted_address,
+                name: results[0].formatted_address.split(',')[0].trim(),
+                coordinates: [loc.lng(), loc.lat()],
+                placeId: results[0].place_id || placeId,
+              });
+            } else {
+              resolve(null);
+            }
+          });
+        });
+
+        if (result) return result;
+      }
+    } catch (err) {
+      console.warn('Geocoder placeId lookup failed:', err);
+    }
+
+    // 2. Try PlacesService.getDetails
+    try {
+      const placesService = await getPlacesService();
+      if (placesService && placeId) {
+        const result = await new Promise((resolve) => {
+          placesService.getDetails(
+            { placeId, fields: ['geometry', 'formatted_address', 'name', 'place_id'] },
+            (place, status) => {
+              if (
+                (status === window.google.maps.places.PlacesServiceStatus.OK || status === 'OK') &&
+                place?.geometry?.location
+              ) {
+                resolve({
+                  address: place.formatted_address || place.name,
+                  name: place.name || place.formatted_address?.split(',')[0],
+                  coordinates: [place.geometry.location.lng(), place.geometry.location.lat()],
+                  placeId: place.place_id || placeId,
+                });
+              } else {
+                resolve(null);
+              }
+            }
+          );
+        });
+
+        if (result) return result;
+      }
+    } catch (err) {
+      console.warn('PlacesService details lookup error:', err);
+    }
+
+    // 3. Try geocoding by fallback query string
+    if (fallbackQuery && fallbackQuery.trim()) {
+      try {
+        const geocoder = await getGeocoder();
+        if (geocoder) {
+          const result = await new Promise((resolve) => {
+            geocoder.geocode({ address: fallbackQuery.trim(), componentRestrictions: { country: 'in' } }, (results, status) => {
+              if (status === window.google.maps.GeocoderStatus.OK && results?.[0]) {
+                const loc = results[0].geometry.location;
+                resolve({
+                  address: results[0].formatted_address,
+                  name: results[0].formatted_address.split(',')[0].trim(),
+                  coordinates: [loc.lng(), loc.lat()],
+                  placeId: results[0].place_id || placeId,
+                });
+              } else {
+                resolve(null);
+              }
+            });
+          });
+
+          if (result) return result;
+        }
+      } catch (err) {
+        console.warn('Fallback address geocoding error:', err);
+      }
+    }
+
+    // Fallback default coordinates if offline
+    return {
+      address: fallbackQuery || 'Selected Location, India',
+      name: fallbackQuery ? fallbackQuery.split(',')[0] : 'Location',
+      coordinates: [78.1198, 9.9252],
+      placeId: placeId || 'loc-id',
+    };
+  },
+
+  /**
+   * Reverse geocode coordinates to a human-readable address
    * @param {number} lng Longitude
    * @param {number} lat Latitude
    * @returns {Promise<string>}
    */
   reverseGeocode: async (lng, lat) => {
-    if (typeof window !== 'undefined' && window.google?.maps?.Geocoder) {
-      try {
-        const geocoder = new window.google.maps.Geocoder();
+    try {
+      const geocoder = await getGeocoder();
+      if (geocoder) {
         const response = await new Promise((resolve) => {
           geocoder.geocode({ location: { lat, lng } }, (results, status) => {
             if (status === window.google.maps.GeocoderStatus.OK && results?.[0]) {
@@ -139,16 +329,16 @@ export const googleMapsService = {
           });
         });
         if (response) return response;
-      } catch (err) {
-        console.warn('Google Maps reverse geocoding JS error:', err);
       }
+    } catch (err) {
+      console.warn('Google Maps reverse geocoding error:', err);
     }
 
     return `Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
   },
 
   /**
-   * Calculate driving route, distance, and duration between two coordinates
+   * Calculate real road-following driving directions, distance, and duration
    * @param {[number, number]} origin [longitude, latitude]
    * @param {[number, number]} destination [longitude, latitude]
    * @returns {Promise<{
@@ -162,8 +352,11 @@ export const googleMapsService = {
    * }>}
    */
   getDirections: async (origin, destination) => {
-    if (typeof window !== 'undefined' && window.google?.maps?.DirectionsService) {
-      try {
+    if (!origin || !destination) return null;
+
+    try {
+      await loadGoogleMapsScript();
+      if (typeof window !== 'undefined' && window.google?.maps?.DirectionsService) {
         const directionsService = new window.google.maps.DirectionsService();
         const request = {
           origin: new window.google.maps.LatLng(origin[1], origin[0]),
@@ -214,9 +407,9 @@ export const googleMapsService = {
             rawResult: result,
           };
         }
-      } catch (err) {
-        console.warn('Google DirectionsService error, using fallback:', err);
       }
+    } catch (err) {
+      console.warn('Google DirectionsService error, calculating fallback road simulation:', err);
     }
 
     return getSimulatedRoute(origin, destination);
@@ -228,91 +421,147 @@ export const googleMapsService = {
  */
 function getFallbackSuggestions(query) {
   const PRESET_PLACES = [
+    // Trichy / Tiruchirappalli
+    {
+      name: 'Trichy International Airport (TRZ)',
+      secondaryText: 'Ramanathapuram Road, Tiruchirappalli, Tamil Nadu',
+      placeName: 'Trichy International Airport, Ramanathapuram Road, Tiruchirappalli, Tamil Nadu, India',
+      coordinates: [78.7047, 10.7654],
+      types: ['airport'],
+    },
+    {
+      name: 'Tiruchirappalli Junction Railway Station',
+      secondaryText: 'Bharathiyar Salai, Sangillyandapuram, Tiruchirappalli',
+      placeName: 'Tiruchirappalli Junction Railway Station, Bharathiyar Salai, Tiruchirappalli, Tamil Nadu',
+      coordinates: [78.6856, 10.7932],
+      types: ['transit_station'],
+    },
+    {
+      name: 'Trichy Central Bus Stand',
+      secondaryText: 'Cantonment, Tiruchirappalli, Tamil Nadu',
+      placeName: 'Central Bus Stand, Rockins Rd, Cantonment, Tiruchirappalli, Tamil Nadu',
+      coordinates: [78.6841, 10.7967],
+      types: ['transit_station'],
+    },
+    {
+      name: 'NIT Trichy Campus Gate',
+      secondaryText: 'Tanjore Main Road, Thuvakudi, Tiruchirappalli',
+      placeName: 'National Institute of Technology, Thuvakudi, Tiruchirappalli, Tamil Nadu',
+      coordinates: [78.8139, 10.7621],
+      types: ['establishment'],
+    },
     // Madurai
     {
       name: '35/1, Muniyandi Kovil Ln, near Saravana Hospital',
-      placeName: '35/1, Muniyandi Kovil Ln, near Saravana Multi-Speciality Hospital, Madurai',
+      secondaryText: 'Saravana Multi-Speciality Hospital Pvt Ltd, Madurai',
+      placeName: '35/1, Muniyandi Kovil Ln, near Saravana Multi-Speciality Hospital, Madurai, Tamil Nadu',
       coordinates: [78.1198, 9.9252],
+      types: ['establishment'],
     },
     {
       name: 'Mattuthavani Omni Bus Stand',
-      placeName: 'Mattuthavani Omni Bus Stand, Melur Main Rd, Madurai',
+      secondaryText: 'Melur Main Road, Mattuthavani, Madurai',
+      placeName: 'Mattuthavani Omni Bus Stand, Melur Main Rd, Madurai, Tamil Nadu',
       coordinates: [78.1565, 9.9485],
+      types: ['transit_station'],
     },
     {
-      name: 'Meenakshi Amman Temple Gate',
-      placeName: 'Madurai Meenakshi Amman Temple, Madurai Main, Madurai',
-      coordinates: [78.1194, 9.9195],
+      name: 'Madurai International Airport (IXM)',
+      secondaryText: 'Airport Road, Madurai, Tamil Nadu',
+      placeName: 'Madurai International Airport, Airport Rd, Madurai, Tamil Nadu',
+      coordinates: [78.0934, 9.8345],
+      types: ['airport'],
     },
     {
       name: 'Madurai Junction Railway Station',
-      placeName: 'Madurai Junction Railway Station, Railway Colony, Madurai',
+      secondaryText: 'Railway Colony, Madurai, Tamil Nadu',
+      placeName: 'Madurai Junction Railway Station, Railway Colony, Madurai, Tamil Nadu',
       coordinates: [78.1105, 9.9238],
-    },
-    // Bangalore
-    {
-      name: 'Bangalore Kempegowda International Airport (BLR)',
-      placeName: 'Kempegowda International Airport, Devanahalli, Bangalore',
-      coordinates: [77.7066, 13.1986],
-    },
-    {
-      name: 'Electronic City Phase 1 IT Park',
-      placeName: 'Electronic City Phase 1, Hosur Road, Bangalore',
-      coordinates: [77.6648, 12.8452],
-    },
-    {
-      name: 'Whitefield Tech Corridor',
-      placeName: 'ITPB, Whitefield Main Road, Bangalore',
-      coordinates: [77.7499, 12.9866],
+      types: ['transit_station'],
     },
     // Chennai
     {
       name: 'Acme Global HQ - Tower A Gate 2',
-      placeName: 'Acme Global HQ, Tower A Gate 2, Tech Park, Chennai',
+      secondaryText: 'Tech Park, Guindy, Chennai, Tamil Nadu',
+      placeName: 'Acme Global HQ, Tower A Gate 2, Tech Park, Chennai, Tamil Nadu',
       coordinates: [80.2707, 13.0827],
+      types: ['establishment'],
     },
     {
-      name: 'TechCorp Innovation Campus Gate 1',
-      placeName: 'TechCorp Innovation Campus, Gate 1, OMR IT Corridor, Chennai',
-      coordinates: [80.2285, 12.9716],
+      name: 'Chennai Central Railway Station',
+      secondaryText: 'Kannappar Thidal, Periamet, Chennai, Tamil Nadu',
+      placeName: 'Puratchi Thalaivar Dr. M.G. Ramachandran Central Railway Station, Chennai',
+      coordinates: [80.2755, 13.0823],
+      types: ['transit_station'],
     },
     {
-      name: 'Chennai International Airport Terminal 2',
-      placeName: 'Chennai International Airport, Terminal 2 Departures, Meenambakkam, Chennai',
+      name: 'Chennai International Airport (MAA)',
+      secondaryText: 'Grand Southern Trunk Rd, Meenambakkam, Chennai',
+      placeName: 'Chennai International Airport, Meenambakkam, Chennai, Tamil Nadu',
       coordinates: [80.1709, 12.9941],
+      types: ['airport'],
+    },
+    {
+      name: 'T. Nagar Commercial Hub',
+      secondaryText: 'Thyagaraya Road, T. Nagar, Chennai, Tamil Nadu',
+      placeName: 'T. Nagar Commercial Hub, Thyagaraya Rd, T. Nagar, Chennai, Tamil Nadu',
+      coordinates: [80.2337, 13.0418],
+      types: ['establishment'],
+    },
+    // Bangalore
+    {
+      name: 'Bangalore Kempegowda International Airport (BLR)',
+      secondaryText: 'Devanahalli, Bengaluru, Karnataka',
+      placeName: 'Kempegowda International Airport, Devanahalli, Bengaluru, Karnataka',
+      coordinates: [77.7066, 13.1986],
+      types: ['airport'],
+    },
+    {
+      name: 'MG Road Metro Station',
+      secondaryText: 'Mahatma Gandhi Road, Bengaluru, Karnataka',
+      placeName: 'MG Road Metro Station, Shivaji Nagar, Bengaluru, Karnataka',
+      coordinates: [77.6186, 12.9756],
+      types: ['transit_station'],
     },
     // Coimbatore
     {
       name: 'Coimbatore Junction Railway Station',
-      placeName: 'Coimbatore Junction, Gopalapuram, Coimbatore',
+      secondaryText: 'Gopalapuram, Coimbatore, Tamil Nadu',
+      placeName: 'Coimbatore Junction, Gopalapuram, Coimbatore, Tamil Nadu',
       coordinates: [76.9629, 11.0018],
+      types: ['transit_station'],
     },
     {
-      name: 'TIDEL Park Coimbatore',
-      placeName: 'TIDEL Park, Avinashi Road, Civil Aerodrome Post, Coimbatore',
-      coordinates: [77.0272, 11.0264],
+      name: 'Coimbatore International Airport (CJB)',
+      secondaryText: 'Avinashi Road, Peelamedu, Coimbatore, Tamil Nadu',
+      placeName: 'Coimbatore International Airport, Peelamedu, Coimbatore, Tamil Nadu',
+      coordinates: [77.0434, 11.0298],
+      types: ['airport'],
     },
   ];
 
   if (!query || query.trim() === '') {
-    return PRESET_PLACES.map((p, idx) => ({ id: `preset-${idx}`, ...p }));
+    return PRESET_PLACES.map((p, idx) => ({ id: `preset-${idx}`, placeId: `preset-${idx}`, ...p }));
   }
 
   const q = query.toLowerCase().trim();
   const matched = PRESET_PLACES.filter(
-    (p) => p.name.toLowerCase().includes(q) || p.placeName.toLowerCase().includes(q)
+    (p) => p.name.toLowerCase().includes(q) || p.placeName.toLowerCase().includes(q) || p.secondaryText.toLowerCase().includes(q)
   );
 
   if (matched.length > 0) {
-    return matched.map((p, idx) => ({ id: `preset-${idx}`, ...p }));
+    return matched.map((p, idx) => ({ id: `preset-${idx}`, placeId: `preset-${idx}`, ...p }));
   }
 
   return [
     {
       id: 'custom-query-loc',
+      placeId: 'custom-query-loc',
       name: query.trim(),
+      secondaryText: 'India',
       placeName: `${query.trim()}, India`,
-      coordinates: [78.1198, 9.9252],
+      coordinates: [78.7047, 10.7654],
+      types: ['geocode'],
     },
   ];
 }
@@ -339,7 +588,7 @@ function getSimulatedRoute(origin, destination) {
   const distanceKm = Number((Math.max(1.2, straightDistanceKm * 1.3)).toFixed(1));
   const durationMin = Math.max(5, Math.round((distanceKm / 32) * 60));
 
-  const steps = 14;
+  const steps = 16;
   const coords = [];
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, CheckCircle2, Navigation, MapPin, Clock, 
-  ShieldAlert, RefreshCw, Car, User, AlertCircle, Compass, Gauge, AlertTriangle, Eye, ArrowRight, XCircle, PhoneCall
+  ShieldAlert, RefreshCw, Car, User, AlertCircle, Compass, Gauge, AlertTriangle, Eye, ArrowRight, XCircle, PhoneCall, X
 } from 'lucide-react';
 import { rideService } from '../services/rideService';
 import { useAuth } from '../context/AuthContext';
@@ -139,7 +139,7 @@ export const DriverTripPage = () => {
         heading: 45.0,
         recordedAt: new Date().toISOString(),
       });
-    }, 4000);
+    }, 3000);
   };
 
   const stopLocationStreaming = () => {
@@ -147,29 +147,19 @@ export const DriverTripPage = () => {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
-    if (simIntervalRef.current !== null) {
+    if (simIntervalRef.current) {
       clearInterval(simIntervalRef.current);
       simIntervalRef.current = null;
     }
-    setGeoStatus('Idle');
+    setGeoStatus('Inactive');
   };
 
   const handleAcceptRide = (ride) => {
-    setAcceptedRides((prev) => ({ ...prev, [ride.id]: true }));
+    setAcceptedRides(prev => ({ ...prev, [ride.id]: true }));
   };
 
-  const handleDeclineRide = async (ride) => {
-    try {
-      setActionLoading(ride.id);
-      setError(null);
-      // Decline removes driver assignment and returns ride to manager pool
-      await rideService.cancelRide(ride.id, { cancellationReason: 'Driver declined trip dispatch' });
-      fetchAssignedRides();
-    } catch (err) {
-      setError(err.message || 'Failed to decline trip request');
-    } finally {
-      setActionLoading(null);
-    }
+  const handleDeclineRide = (ride) => {
+    setAssignedRides(prev => prev.filter(r => r.id !== ride.id));
   };
 
   const handleStartTrip = async (ride) => {
@@ -177,8 +167,9 @@ export const DriverTripPage = () => {
       setActionLoading(ride.id);
       setError(null);
       const updated = await rideService.startTrip(ride.id);
-      setActiveTrackingRide(updated);
-      startLocationStreaming(updated);
+
+      setActiveTrackingRide(updated || ride);
+      startLocationStreaming(updated || ride);
       fetchAssignedRides();
     } catch (err) {
       setError(err.message || 'Failed to start trip');
@@ -191,7 +182,15 @@ export const DriverTripPage = () => {
     try {
       setActionLoading(ride.id);
       setError(null);
-      await rideService.completeTrip(ride.id);
+
+      const finalLat = ride.destinationLatitude || 9.9485;
+      const finalLng = ride.destinationLongitude || 78.1565;
+
+      await rideService.completeTrip(ride.id, {
+        finalLatitude: finalLat,
+        finalLongitude: finalLng,
+      });
+
       stopLocationStreaming();
       setActiveTrackingRide(null);
       setLastLocation(null);
@@ -205,12 +204,12 @@ export const DriverTripPage = () => {
 
   if (!isDriver) {
     return (
-      <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
+      <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '20px', textAlign: 'center', padding: '3rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
         <ShieldAlert size={48} color="#ef4444" style={{ margin: '0 auto 1rem' }} />
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', marginBottom: '0.5rem' }}>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f2920', marginBottom: '0.5rem' }}>
           Access Restricted
         </h2>
-        <p style={{ color: 'var(--text-muted)' }}>
+        <p style={{ color: '#64748b' }}>
           The Driver Console is reserved for registered fleet drivers and transport personnel.
         </p>
       </div>
@@ -242,38 +241,70 @@ export const DriverTripPage = () => {
   const completedRides = assignedRides.filter(r => r.status === 'COMPLETED');
 
   return (
-    <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 className="page-title">Driver Console</h1>
-          <p className="page-subtitle">
+          <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0f2920', margin: 0, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <Navigation size={28} color="#059669" />
+            <span>Driver Console</span>
+          </h1>
+          <p style={{ color: '#64748b', margin: '0.35rem 0 0', fontSize: '0.9rem', fontWeight: 500 }}>
             Accept corporate trip dispatches, navigate driving routes with Google Maps, broadcast live telemetry, and complete passenger commutes.
           </p>
         </div>
 
-        <button onClick={fetchAssignedRides} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <RefreshCw size={16} />
-          Refresh
+        <button
+          type="button"
+          onClick={fetchAssignedRides}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.6rem 1.1rem',
+            fontSize: '0.85rem',
+            background: '#ffffff',
+            border: '1.5px solid #e2e8f0',
+            color: '#0f2920',
+            borderRadius: '10px',
+            fontWeight: 800,
+            cursor: 'pointer',
+          }}
+        >
+          <RefreshCw size={16} className={loading ? 'spin-animation' : ''} />
+          <span>Refresh</span>
         </button>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && (
+        <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', color: '#ef4444', padding: '1rem 1.25rem', borderRadius: '12px', fontWeight: 700 }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       {/* ACTIVE GPS TRACKING PANEL & MAP */}
       {activeTrackingRide && (
-        <div className="glass-card" style={{ marginBottom: '2rem', borderColor: 'var(--accent-teal, #10b981)', background: 'rgba(16, 185, 129, 0.05)', padding: '1.75rem' }}>
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1.5px solid #a7f3d0',
+            borderLeft: '5px solid #059669',
+            borderRadius: '20px',
+            padding: '1.75rem',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+          }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 12px #10b981' }} />
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0 }}>
-                Active Trip in Progress &bull; {activeTrackingRide.bookingReference}
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#059669', boxShadow: '0 0 12px #059669' }} />
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f2920', margin: 0 }}>
+                Active Trip in Progress • {activeTrackingRide.bookingReference}
               </h2>
             </div>
             <StatusBadge status={activeTrackingRide.status} />
           </div>
 
           {/* DRIVER MAPVIEW */}
-          <div style={{ marginBottom: '1.25rem' }}>
+          <div style={{ marginBottom: '1.25rem', borderRadius: '14px', overflow: 'hidden', border: '1.5px solid #e2e8f0' }}>
             <MapView
               center={activePickupLoc?.coordinates || [78.1198, 9.9252]}
               zoom={13}
@@ -286,24 +317,24 @@ export const DriverTripPage = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: 'var(--radius-sm)', marginBottom: '1.25rem', fontSize: '0.88rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', background: '#f8faf9', border: '1.5px solid #e2e8f0', padding: '1rem 1.25rem', borderRadius: '12px', marginBottom: '1.25rem', fontSize: '0.88rem' }}>
             <div>
-              <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.78rem' }}>Passenger</span>
-              <strong style={{ color: '#fff' }}>{activeTrackingRide.employeeName}</strong>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Passenger</span>
+              <strong style={{ color: '#0f2920' }}>{activeTrackingRide.employeeName}</strong>
             </div>
             <div>
-              <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.78rem' }}>Assigned Vehicle</span>
-              <strong style={{ color: 'var(--accent-cyan, #06b6d4)' }}>{activeTrackingRide.vehicleRegistration}</strong>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Assigned Vehicle</span>
+              <strong style={{ color: '#2563eb' }}>{activeTrackingRide.vehicleRegistration}</strong>
             </div>
             <div>
-              <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.78rem' }}>GPS Status</span>
-              <span style={{ color: '#10b981', fontWeight: 700 }}>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>GPS Status</span>
+              <span style={{ color: '#059669', fontWeight: 800 }}>
                 {geoStatus}
               </span>
             </div>
             <div>
-              <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.78rem' }}>Telemetry Coordinates</span>
-              <strong style={{ color: '#fff' }}>
+              <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Telemetry Coordinates</span>
+              <strong style={{ color: '#0f2920' }}>
                 {lastLocation ? `${lastLocation.latitude.toFixed(4)}, ${lastLocation.longitude.toFixed(4)}` : 'Syncing...'}
               </strong>
             </div>
@@ -311,111 +342,138 @@ export const DriverTripPage = () => {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
             <button
+              type="button"
               onClick={() => handleCompleteTrip(activeTrackingRide)}
-              className="btn btn-primary"
-              style={{ background: '#10b981', borderColor: '#10b981', padding: '0.65rem 1.5rem', fontWeight: 700 }}
+              style={{
+                background: 'linear-gradient(180deg, #184738 0%, #103327 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '0.65rem 1.5rem',
+                fontWeight: 800,
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                boxShadow: '0 4px 15px rgba(19, 56, 44, 0.25)',
+              }}
               disabled={actionLoading === activeTrackingRide.id}
             >
               <CheckCircle2 size={18} />
-              {actionLoading === activeTrackingRide.id ? 'Completing Trip...' : 'Mark Trip Completed'}
+              <span>{actionLoading === activeTrackingRide.id ? 'Completing Trip...' : 'Mark Trip Completed'}</span>
             </button>
           </div>
         </div>
       )}
 
       {/* UBER DRIVER INCOMING DISPATCH CARDS (ASSIGNED RIDES) */}
-      <div style={{ marginBottom: '2.5rem' }}>
+      <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0 }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f2920', margin: 0 }}>
             Assigned Trips & Offers
           </h2>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 700 }}>
             {pendingOffers.length} pending trip(s)
           </span>
         </div>
 
         {loading ? (
-          <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
-            <p style={{ color: 'var(--text-muted)' }}>Loading assigned driver trips...</p>
+          <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '18px', textAlign: 'center', padding: '4rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+            <RefreshCw size={28} className="spin-animation" style={{ margin: '0 auto 0.75rem', color: '#059669' }} />
+            <p style={{ color: '#64748b', fontWeight: 600 }}>Loading assigned driver trips...</p>
           </div>
         ) : pendingOffers.length === 0 ? (
-          <div className="glass-card" style={{ textAlign: 'center', padding: '2.5rem' }}>
-            <Car size={36} color="var(--text-dim, #71717a)" style={{ margin: '0 auto 0.75rem' }} />
-            <p style={{ color: '#fff', fontSize: '1rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+          <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '18px', textAlign: 'center', padding: '3.5rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+            <Car size={36} color="#059669" style={{ margin: '0 auto 0.75rem' }} />
+            <p style={{ color: '#0f2920', fontSize: '1.1rem', fontWeight: 900, marginBottom: '0.25rem' }}>
               No Pending Ride Offers
             </p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
+            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
               You will receive a notification here when the Transport Manager assigns a corporate commute to you.
             </p>
           </div>
         ) : (
-          <div className="rides-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem' }}>
             {pendingOffers.map((ride) => {
               const isAccepted = acceptedRides[ride.id];
               return (
                 <div 
                   key={ride.id} 
-                  className="ride-card"
                   style={{
-                    border: isAccepted ? '1.5px solid #10b981' : '1.5px solid rgba(255, 255, 255, 0.15)',
-                    background: isAccepted ? 'rgba(16, 185, 129, 0.04)' : 'var(--bg-card, #14171b)',
-                    borderRadius: '16px',
-                    padding: '1.25rem',
+                    border: isAccepted ? '1.5px solid #059669' : '1.5px solid #e2e8f0',
+                    background: isAccepted ? '#f0fdf4' : '#ffffff',
+                    borderRadius: '18px',
+                    padding: '1.5rem',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
                   }}
                 >
-                  <div className="ride-card-header" style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <span className="booking-ref">{ride.bookingReference}</span>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', marginTop: '0.2rem' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#2563eb', letterSpacing: '0.5px' }}>{ride.bookingReference}</span>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f2920', margin: '0.2rem 0 0 0' }}>
                         {ride.employeeName}
                       </h3>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        Passenger &bull; {ride.department || 'Corporate'}
+                      <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                        Passenger • {ride.department || 'Corporate'}
                       </span>
                     </div>
-                    <StatusBadge status={isAccepted ? 'ASSIGNED' : 'ASSIGNED'} />
+                    <StatusBadge status="ASSIGNED" />
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.88rem', margin: '0.85rem 0' }}>
-                    <div className="meta-item">
-                      <MapPin size={15} color="#10b981" style={{ flexShrink: 0 }} />
-                      <span>Pickup: <strong style={{ color: '#fff' }}>{ride.pickupLocation}</strong></span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.88rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <MapPin size={15} color="#059669" style={{ flexShrink: 0 }} />
+                      <span style={{ color: '#64748b' }}>Pickup: <strong style={{ color: '#0f2920' }}>{ride.pickupLocation}</strong></span>
                     </div>
 
-                    <div className="meta-item">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <MapPin size={15} color="#ef4444" style={{ flexShrink: 0 }} />
-                      <span>Destination: <strong style={{ color: '#fff' }}>{ride.destination}</strong></span>
+                      <span style={{ color: '#64748b' }}>Destination: <strong style={{ color: '#0f2920' }}>{ride.destination}</strong></span>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.03)', padding: '0.6rem 0.8rem', borderRadius: '10px' }}>
-                      <div className="meta-item">
-                        <Clock size={14} color="#6366f1" />
-                        <span>Date: <strong style={{ color: '#fff' }}>{ride.bookingDate}</strong></span>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', color: '#64748b', background: '#f8faf9', border: '1.5px solid #e2e8f0', padding: '0.65rem 0.85rem', borderRadius: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Clock size={14} color="#2563eb" />
+                        <span>Date: <strong style={{ color: '#0f2920' }}>{ride.bookingDate}</strong></span>
                       </div>
-                      <div className="meta-item">
-                        <Clock size={14} color="#f59e0b" />
-                        <span>Time: <strong style={{ color: '#10b981' }}>{ride.pickupTime}</strong></span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Clock size={14} color="#d97706" />
+                        <span>Time: <strong style={{ color: '#059669' }}>{ride.pickupTime}</strong></span>
                       </div>
                     </div>
 
                     {ride.vehicleRegistration && (
-                      <div className="meta-item" style={{ background: 'rgba(6, 182, 212, 0.08)', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
-                        <Car size={15} color="#06b6d4" />
-                        <span>Vehicle: <strong style={{ color: 'var(--accent-cyan)' }}>{ride.vehicleRegistration}</strong> ({ride.vehicleMakeModel || 'Fleet Sedan'})</span>
+                      <div style={{ background: '#f8faf9', border: '1.5px solid #e2e8f0', padding: '0.55rem 0.75rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
+                        <Car size={15} color="#2563eb" />
+                        <span style={{ color: '#64748b' }}>Vehicle: <strong style={{ color: '#2563eb' }}>{ride.vehicleRegistration}</strong> ({ride.vehicleMakeModel || 'Fleet Sedan'})</span>
                       </div>
                     )}
                   </div>
 
                   {/* UBER DRIVER ACTION BUTTONS (ACCEPT / DECLINE / START) */}
-                  <div style={{ display: 'flex', gap: '0.6rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.6rem', borderTop: '1.5px solid #f1f5f9', paddingTop: '1rem' }}>
                     <button
                       type="button"
                       onClick={() => setViewRouteModalRide(ride)}
-                      className="btn btn-secondary"
-                      style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}
+                      style={{
+                        padding: '0.5rem 0.85rem',
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        background: '#ffffff',
+                        border: '1.5px solid #e2e8f0',
+                        color: '#0f2920',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                      }}
                     >
                       <Eye size={14} />
-                      Route
+                      <span>Route</span>
                     </button>
 
                     {!isAccepted ? (
@@ -423,34 +481,75 @@ export const DriverTripPage = () => {
                         <button
                           type="button"
                           onClick={() => handleDeclineRide(ride)}
-                          className="btn btn-secondary"
-                          style={{ flex: 1, color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}
+                          style={{
+                            flex: 1,
+                            color: '#ef4444',
+                            background: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            padding: '0.5rem 0.75rem',
+                            fontSize: '0.85rem',
+                            fontWeight: 800,
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.35rem',
+                          }}
                           disabled={actionLoading === ride.id}
                         >
                           <XCircle size={15} />
-                          Decline
+                          <span>Decline</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => handleAcceptRide(ride)}
-                          className="btn btn-primary"
-                          style={{ flex: 1.5, background: '#10b981', borderColor: '#10b981', padding: '0.5rem 0.75rem', fontSize: '0.85rem', fontWeight: 700 }}
+                          style={{
+                            flex: 1.5,
+                            background: 'linear-gradient(180deg, #184738 0%, #103327 100%)',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '0.5rem 0.75rem',
+                            fontSize: '0.85rem',
+                            fontWeight: 800,
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.35rem',
+                            boxShadow: '0 2px 10px rgba(19, 56, 44, 0.2)',
+                          }}
                         >
                           <CheckCircle2 size={15} />
-                          Accept Ride
+                          <span>Accept Ride</span>
                         </button>
                       </>
                     ) : (
                       <button
                         type="button"
                         onClick={() => handleStartTrip(ride)}
-                        className="btn btn-primary"
-                        style={{ flex: 2, padding: '0.55rem 1rem', fontSize: '0.88rem', fontWeight: 700 }}
+                        style={{
+                          flex: 2,
+                          padding: '0.55rem 1rem',
+                          fontSize: '0.88rem',
+                          fontWeight: 800,
+                          background: 'linear-gradient(180deg, #184738 0%, #103327 100%)',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.4rem',
+                          boxShadow: '0 4px 15px rgba(19, 56, 44, 0.25)',
+                        }}
                         disabled={actionLoading === ride.id}
                       >
                         <Play size={15} />
-                        {actionLoading === ride.id ? 'Starting GPS Navigation...' : 'Start Trip & Navigate'}
+                        <span>{actionLoading === ride.id ? 'Starting GPS Navigation...' : 'Start Trip & Navigate'}</span>
                       </button>
                     )}
                   </div>
@@ -463,31 +562,43 @@ export const DriverTripPage = () => {
 
       {/* COMPLETED TRIPS ROSTER */}
       <div>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: '1rem' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f2920', marginBottom: '1rem' }}>
           Completed Trips History
         </h2>
 
         {completedRides.length === 0 ? (
-          <div className="glass-card" style={{ textAlign: 'center', padding: '2rem' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: 0 }}>
+          <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '18px', textAlign: 'center', padding: '3rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+            <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0, fontWeight: 600 }}>
               No completed trips recorded for this session yet.
             </p>
           </div>
         ) : (
-          <div className="rides-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
             {completedRides.map((ride) => (
-              <div key={ride.id} className="ride-card" style={{ opacity: 0.85 }}>
-                <div className="ride-card-header">
+              <div
+                key={ride.id}
+                style={{
+                  background: '#ffffff',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: '18px',
+                  padding: '1.25rem',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.65rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <span className="booking-ref">{ride.bookingReference}</span>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#fff' }}>{ride.employeeName}</h3>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#2563eb', letterSpacing: '0.5px' }}>{ride.bookingReference}</span>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f2920', margin: '0.15rem 0 0 0' }}>{ride.employeeName}</h3>
                   </div>
                   <StatusBadge status="COMPLETED" />
                 </div>
-                <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                  <div>From: <strong style={{ color: '#fff' }}>{ride.pickupLocation}</strong></div>
-                  <div>To: <strong style={{ color: '#fff' }}>{ride.destination}</strong></div>
-                  <div style={{ marginTop: '0.3rem', color: '#10b981' }}>Completed on {ride.bookingDate}</div>
+                <div style={{ fontSize: '0.825rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <div>From: <strong style={{ color: '#0f2920' }}>{ride.pickupLocation}</strong></div>
+                  <div>To: <strong style={{ color: '#0f2920' }}>{ride.destination}</strong></div>
+                  <div style={{ marginTop: '0.3rem', color: '#059669', fontWeight: 700 }}>Completed on {ride.bookingDate}</div>
                 </div>
               </div>
             ))}
@@ -498,20 +609,37 @@ export const DriverTripPage = () => {
       {/* VIEW ROUTE MODAL */}
       {viewRouteModalRide && (
         <div className="modal-overlay" onClick={() => setViewRouteModalRide(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '780px' }}>
-            <div className="modal-header">
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '780px',
+              width: '100%',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '20px',
+              padding: '2rem',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.2)',
+              color: '#0f2920',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h2 className="modal-title">Planned Driving Route</h2>
-                <span className="booking-ref" style={{ fontSize: '0.85rem' }}>
-                  {viewRouteModalRide.bookingReference} &bull; Passenger: {viewRouteModalRide.employeeName}
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f2920', margin: 0 }}>Planned Driving Route</h2>
+                <span style={{ fontSize: '0.85rem', color: '#2563eb', fontWeight: 700 }}>
+                  {viewRouteModalRide.bookingReference} • Passenger: {viewRouteModalRide.employeeName}
                 </span>
               </div>
-              <button onClick={() => setViewRouteModalRide(null)} className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>
-                Close
+              <button
+                type="button"
+                onClick={() => setViewRouteModalRide(null)}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
+              >
+                <X size={20} />
               </button>
             </div>
 
-            <div style={{ marginBottom: '1.25rem' }}>
+            <div style={{ marginBottom: '1.25rem', borderRadius: '14px', overflow: 'hidden', border: '1.5px solid #e2e8f0' }}>
               <MapView
                 center={viewRouteModalRide.pickupLongitude ? [viewRouteModalRide.pickupLongitude, viewRouteModalRide.pickupLatitude] : [78.1198, 9.9252]}
                 zoom={13}
@@ -537,11 +665,22 @@ export const DriverTripPage = () => {
                   setViewRouteModalRide(null);
                   handleAcceptRide(r);
                 }}
-                className="btn btn-primary"
-                style={{ background: '#10b981', borderColor: '#10b981' }}
+                style={{
+                  background: 'linear-gradient(180deg, #184738 0%, #103327 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '0.65rem 1.25rem',
+                  fontWeight: 800,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  boxShadow: '0 4px 15px rgba(19, 56, 44, 0.25)',
+                }}
               >
-                <CheckCircle2 size={15} />
-                Accept & Prepare Route
+                <CheckCircle2 size={16} />
+                <span>Accept & Prepare Route</span>
               </button>
             </div>
           </div>
