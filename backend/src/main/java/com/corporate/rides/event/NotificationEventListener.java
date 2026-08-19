@@ -49,6 +49,27 @@ public class NotificationEventListener {
                             "Employee " + ride.getEmployee().getFullName() + " requested a ride (" + ride.getBookingReference() + ") for " + ride.getBookingDate() + ".");
                 }
 
+                case RIDE_APPROVED -> {
+                    dispatchDualNotification(
+                            ride.getEmployee(),
+                            ride,
+                            NotificationType.RIDE_APPROVED,
+                            "Ride Request Approved",
+                            "Your ride request (" + ride.getBookingReference() + ") has been approved by the Transport Manager and queued for scheduling."
+                    );
+                }
+
+                case RIDE_REJECTED -> {
+                    String reason = ride.getRejectionReason() != null ? " Reason: " + ride.getRejectionReason() : "";
+                    dispatchDualNotification(
+                            ride.getEmployee(),
+                            ride,
+                            NotificationType.RIDE_REJECTED,
+                            "Ride Request Rejected",
+                            "Your ride request (" + ride.getBookingReference() + ") was not approved." + reason
+                    );
+                }
+
                 case RIDE_SCHEDULED -> {
                     dispatchDualNotification(
                             ride.getEmployee(),
@@ -102,6 +123,34 @@ public class NotificationEventListener {
                                 "You have been assigned to ride (" + ride.getBookingReference() + ") scheduled for " + ride.getBookingDate() + " at " + ride.getPickupTime() + "."
                         );
                     }
+                }
+
+                case DRIVER_ACCEPTED -> {
+                    String driverName = ride.getDriver() != null ? ride.getDriver().getUser().getFullName() : "Driver";
+                    notifyManagers(
+                            ride,
+                            NotificationType.DRIVER_ACCEPTED,
+                            "Driver Accepted Assignment",
+                            "Driver " + driverName + " has accepted assignment for ride (" + ride.getBookingReference() + ")."
+                    );
+                    dispatchDualNotification(
+                            ride.getEmployee(),
+                            ride,
+                            NotificationType.DRIVER_ACCEPTED,
+                            "Driver Confirmed Ride",
+                            "Driver " + driverName + " is confirmed and preparing for your pickup at " + ride.getPickupTime() + "."
+                    );
+                }
+
+                case DRIVER_REJECTED -> {
+                    String driverName = event.getActor() != null ? event.getActor().getFullName() : "Driver";
+                    String reasonText = ride.getRejectionReason() != null ? " Reason: " + ride.getRejectionReason() : "";
+                    notifyManagers(
+                            ride,
+                            NotificationType.DRIVER_REJECTED,
+                            "Driver Rejected Assignment",
+                            "Driver " + driverName + " rejected assignment for ride (" + ride.getBookingReference() + ")." + reasonText + ". Please reassign a driver."
+                    );
                 }
 
                 case TRIP_STARTED -> {

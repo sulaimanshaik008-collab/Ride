@@ -85,6 +85,18 @@ public class Ride {
     @Column(name = "cancelled_at")
     private OffsetDateTime cancelledAt;
 
+    @Column(name = "driver_accepted_at")
+    private OffsetDateTime driverAcceptedAt;
+
+    @Column(name = "employee_verified_at")
+    private OffsetDateTime employeeVerifiedAt;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
+    @Column(name = "rejected_at")
+    private OffsetDateTime rejectedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

@@ -33,24 +33,34 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
 
     @Query("SELECT r FROM Ride r WHERE r.organization.id = :orgId " +
            "AND (:status IS NULL OR r.status = :status) " +
-           "AND (:bookingDate IS NULL OR r.bookingDate = :bookingDate) " +
-           "AND (:search IS NULL OR LOWER(r.bookingReference) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "     OR LOWER(r.employee.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "     OR LOWER(r.pickupLocation) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "     OR LOWER(r.destination) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (cast(:bookingDate as date) IS NULL OR r.bookingDate = :bookingDate) " +
+           "AND (LOWER(r.bookingReference) LIKE :searchPattern " +
+           "     OR LOWER(r.employee.fullName) LIKE :searchPattern " +
+           "     OR LOWER(r.pickupLocation) LIKE :searchPattern " +
+           "     OR LOWER(r.destination) LIKE :searchPattern) " +
            "ORDER BY r.bookingDate DESC, r.pickupTime DESC")
-    List<Ride> searchTenantScheduledRides(
+    List<Ride> searchTenantScheduledRidesWithSearch(
             @Param("orgId") UUID orgId,
-            @Param("search") String search,
+            @Param("searchPattern") String searchPattern,
+            @Param("bookingDate") LocalDate bookingDate,
+            @Param("status") RideStatus status
+    );
+
+    @Query("SELECT r FROM Ride r WHERE r.organization.id = :orgId " +
+           "AND (:status IS NULL OR r.status = :status) " +
+           "AND (cast(:bookingDate as date) IS NULL OR r.bookingDate = :bookingDate) " +
+           "ORDER BY r.bookingDate DESC, r.pickupTime DESC")
+    List<Ride> searchTenantScheduledRidesWithoutSearch(
+            @Param("orgId") UUID orgId,
             @Param("bookingDate") LocalDate bookingDate,
             @Param("status") RideStatus status
     );
 
     // Feature 5 — Assignment Queries
     @Query("SELECT r FROM Ride r WHERE r.organization.id = :orgId " +
-           "AND r.status IN (com.corporate.rides.enums.RideStatus.SCHEDULED, com.corporate.rides.enums.RideStatus.ASSIGNED) " +
+           "AND r.status IN (com.corporate.rides.enums.RideStatus.PENDING_APPROVAL, com.corporate.rides.enums.RideStatus.APPROVED, com.corporate.rides.enums.RideStatus.SCHEDULED, com.corporate.rides.enums.RideStatus.ASSIGNED) " +
            "AND (r.driver IS NULL OR r.vehicle IS NULL) " +
-           "ORDER BY r.bookingDate ASC, r.pickupTime ASC")
+           "ORDER BY r.bookingDate ASC, r.pickupTime ASC, r.createdAt DESC")
     List<Ride> findPendingAssignmentTenantRides(@Param("orgId") UUID orgId);
 
     @Query("SELECT r FROM Ride r WHERE r.organization.id = :orgId " +
@@ -88,4 +98,28 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
            "AND r.status IN (com.corporate.rides.enums.RideStatus.ASSIGNED, com.corporate.rides.enums.RideStatus.IN_PROGRESS) " +
            "ORDER BY r.bookingDate ASC, r.pickupTime ASC")
     List<Ride> findAssignedDriverRidesByUserId(@Param("orgId") UUID orgId, @Param("userId") UUID userId);
+
+    @Query("SELECT r FROM Ride r WHERE r.organization.id = :orgId " +
+           "AND r.driver.user.id = :userId " +
+           "AND r.bookingDate = :today " +
+           "ORDER BY r.pickupTime ASC")
+    List<Ride> findTodayRidesByDriverUserId(
+            @Param("orgId") UUID orgId,
+            @Param("userId") UUID userId,
+            @Param("today") LocalDate today
+    );
+
+    @Query("SELECT r FROM Ride r WHERE r.organization.id = :orgId " +
+           "AND r.driver.user.id = :userId " +
+           "AND (:status IS NULL OR r.status = :status) " +
+           "AND (cast(:from as date) IS NULL OR r.bookingDate >= :from) " +
+           "AND (cast(:to as date) IS NULL OR r.bookingDate <= :to) " +
+           "ORDER BY r.bookingDate DESC, r.pickupTime DESC")
+    List<Ride> findHistoryByDriverUserId(
+            @Param("orgId") UUID orgId,
+            @Param("userId") UUID userId,
+            @Param("status") RideStatus status,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to
+    );
 }

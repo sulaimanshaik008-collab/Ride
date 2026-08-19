@@ -47,6 +47,12 @@ public class RideResponseDto {
 
     private String cancellationReason;
     private OffsetDateTime cancelledAt;
+    private OffsetDateTime driverAcceptedAt;
+    private OffsetDateTime employeeVerifiedAt;
+    private String rejectionReason;
+    private OffsetDateTime rejectedAt;
+    private Boolean isDriverAccepted;
+    private Boolean isEmployeeVerified;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

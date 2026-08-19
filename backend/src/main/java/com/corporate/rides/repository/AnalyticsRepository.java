@@ -14,8 +14,8 @@ import java.util.UUID;
 public interface AnalyticsRepository extends JpaRepository<Ride, UUID> {
 
     @Query("SELECT r FROM Ride r WHERE r.organization.id = :orgId " +
-           "AND (:from IS NULL OR r.bookingDate >= :from) " +
-           "AND (:to IS NULL OR r.bookingDate <= :to)")
+           "AND (cast(:from as date) IS NULL OR r.bookingDate >= :from) " +
+           "AND (cast(:to as date) IS NULL OR r.bookingDate <= :to)")
     List<Ride> findTenantRidesInDateRange(
             @Param("orgId") UUID orgId,
             @Param("from") LocalDate from,
@@ -23,8 +23,8 @@ public interface AnalyticsRepository extends JpaRepository<Ride, UUID> {
     );
 
     @Query("SELECT COUNT(DISTINCT r.employee.id) FROM Ride r WHERE r.organization.id = :orgId " +
-           "AND (:from IS NULL OR r.bookingDate >= :from) " +
-           "AND (:to IS NULL OR r.bookingDate <= :to)")
+           "AND (cast(:from as date) IS NULL OR r.bookingDate >= :from) " +
+           "AND (cast(:to as date) IS NULL OR r.bookingDate <= :to)")
     long countUniquePassengers(
             @Param("orgId") UUID orgId,
             @Param("from") LocalDate from,
@@ -35,8 +35,8 @@ public interface AnalyticsRepository extends JpaRepository<Ride, UUID> {
            "SUM(CASE WHEN r.status = com.corporate.rides.enums.RideStatus.COMPLETED THEN 1 ELSE 0 END), " +
            "SUM(CASE WHEN r.status = com.corporate.rides.enums.RideStatus.CANCELLED THEN 1 ELSE 0 END) " +
            "FROM Ride r WHERE r.organization.id = :orgId " +
-           "AND (:from IS NULL OR r.bookingDate >= :from) " +
-           "AND (:to IS NULL OR r.bookingDate <= :to) " +
+           "AND (cast(:from as date) IS NULL OR r.bookingDate >= :from) " +
+           "AND (cast(:to as date) IS NULL OR r.bookingDate <= :to) " +
            "GROUP BY r.pickupLocation, r.destination " +
            "ORDER BY COUNT(r) DESC")
     List<Object[]> findRouteAnalytics(
