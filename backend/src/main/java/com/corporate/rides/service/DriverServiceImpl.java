@@ -109,12 +109,27 @@ public class DriverServiceImpl implements DriverService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public DriverResponseDto getSelfDriverProfile() {
         UserPrincipal currentUser = getCurrentUserPrincipal();
 
         Driver driver = driverRepository.findByUserId(currentUser.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Driver profile not found for authenticated user"));
+                .orElseGet(() -> {
+                    User user = userRepository.findById(currentUser.getUserId())
+                            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                    Organization org = user.getOrganization();
+                    String cleanEmail = user.getEmail() != null ? user.getEmail() : "driver";
+                    String lic = "DL-" + cleanEmail.replaceAll("[^a-zA-Z0-9]", "").toUpperCase().substring(0, Math.min(10, cleanEmail.length()));
+                    
+                    return driverRepository.save(Driver.builder()
+                            .user(user)
+                            .organization(org)
+                            .licenseNumber(lic)
+                            .licenseExpiryDate(LocalDate.now().plusYears(3))
+                            .driverStatus(DriverStatus.ACTIVE)
+                            .availabilityStatus(DriverAvailability.AVAILABLE)
+                            .build());
+                });
 
         return mapToDto(driver);
     }

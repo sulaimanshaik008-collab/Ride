@@ -13,8 +13,10 @@ public interface RideService {
     RideResponseDto getRideById(UUID rideId);
     RideResponseDto cancelRide(UUID rideId, CancelRideRequestDto request);
 
-    // Feature 4 — Ride Scheduling Methods
+    // Feature 4 — Ride Scheduling & Manager Request Management Methods
     List<RideResponseDto> getSchedulableRides();
+    RideResponseDto approveRide(UUID rideId);
+    RideResponseDto rejectRideRequest(UUID rideId, RejectRideRequestDto request);
     RideResponseDto scheduleRide(UUID rideId, ScheduleRideRequestDto request);
     RideResponseDto rescheduleRide(UUID rideId, RescheduleRideRequestDto request);
     List<RideResponseDto> getScheduledRides(String search, LocalDate bookingDate, RideStatus status);
@@ -34,4 +36,11 @@ public interface RideService {
     RideResponseDto completeTrip(UUID rideId);
     List<RideResponseDto> getActiveTrips();
     List<RideResponseDto> getDriverAssignedTrips();
+
+    // Feature 7 — Driver Operations Methods
+    RideResponseDto acceptRideAssignment(UUID rideId);
+    RideResponseDto rejectRideAssignment(UUID rideId, RejectRideRequestDto request);
+    RideResponseDto verifyEmployeeForRide(UUID rideId, EmployeeVerificationRequestDto request);
+    List<RideResponseDto> getDriverTodayRides();
+    List<RideResponseDto> getDriverRideHistory(LocalDate from, LocalDate to, RideStatus status);
 }

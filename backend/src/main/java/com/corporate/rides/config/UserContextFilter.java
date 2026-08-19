@@ -53,11 +53,16 @@ public class UserContextFilter extends OncePerRequestFilter {
                 String username = cleanEmail.contains("@") ? cleanEmail.split("@")[0] : cleanEmail;
                 String formattedName = Character.toUpperCase(username.charAt(0)) + (username.length() > 1 ? username.substring(1) : "");
 
+                UserRole determinedRole = cleanEmail.contains("driver")
+                        ? UserRole.DRIVER
+                        : (cleanEmail.contains("manager") ? UserRole.TRANSPORT_MANAGER
+                        : (cleanEmail.contains("admin") ? UserRole.CORPORATE_ADMIN : UserRole.EMPLOYEE));
+
                 User newUser = User.builder()
                         .organization(defaultOrg)
                         .email(cleanEmail)
                         .fullName(formattedName)
-                        .role(UserRole.EMPLOYEE)
+                        .role(determinedRole)
                         .status(UserStatus.ACTIVE)
                         .verificationStatus(VerificationStatus.VERIFIED)
                         .build();

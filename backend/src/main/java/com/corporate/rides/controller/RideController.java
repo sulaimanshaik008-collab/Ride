@@ -34,6 +34,40 @@ public class RideController {
         return ResponseEntity.ok(ApiResponse.success(rides, "Employee rides retrieved successfully"));
     }
 
+    // Static subpaths before /{id} to avoid Spring MVC treating 'driver' or 'active' as a UUID {id}
+    @GetMapping("/driver/today")
+    public ResponseEntity<ApiResponse<List<RideResponseDto>>> getDriverTodayRides() {
+        List<RideResponseDto> rides = rideService.getDriverTodayRides();
+        return ResponseEntity.ok(ApiResponse.success(rides, "Today's assigned schedule retrieved successfully"));
+    }
+
+    @GetMapping("/driver/history")
+    public ResponseEntity<ApiResponse<List<RideResponseDto>>> getDriverRideHistory(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) RideStatus status) {
+        List<RideResponseDto> history = rideService.getDriverRideHistory(from, to, status);
+        return ResponseEntity.ok(ApiResponse.success(history, "Driver trip history retrieved successfully"));
+    }
+
+    @GetMapping("/driver-assigned")
+    public ResponseEntity<ApiResponse<List<RideResponseDto>>> getDriverAssignedTrips() {
+        List<RideResponseDto> assigned = rideService.getDriverAssignedTrips();
+        return ResponseEntity.ok(ApiResponse.success(assigned, "Driver assigned trips retrieved successfully"));
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<List<RideResponseDto>>> getActiveTrips() {
+        List<RideResponseDto> active = rideService.getActiveTrips();
+        return ResponseEntity.ok(ApiResponse.success(active, "Active trips retrieved successfully"));
+    }
+
+    @GetMapping("/schedulable")
+    public ResponseEntity<ApiResponse<List<RideResponseDto>>> getSchedulableRides() {
+        List<RideResponseDto> rides = rideService.getSchedulableRides();
+        return ResponseEntity.ok(ApiResponse.success(rides, "Schedulable ride requests retrieved successfully"));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<RideResponseDto>> getRideById(@PathVariable UUID id) {
         RideResponseDto ride = rideService.getRideById(id);
@@ -49,13 +83,21 @@ public class RideController {
     }
 
     // ==========================================
-    // FEATURE 4 — RIDE SCHEDULING ENDPOINTS
+    // FEATURE 4 — RIDE SCHEDULING & APPROVAL ENDPOINTS
     // ==========================================
 
-    @GetMapping("/schedulable")
-    public ResponseEntity<ApiResponse<List<RideResponseDto>>> getSchedulableRides() {
-        List<RideResponseDto> rides = rideService.getSchedulableRides();
-        return ResponseEntity.ok(ApiResponse.success(rides, "Schedulable ride requests retrieved successfully"));
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<ApiResponse<RideResponseDto>> approveRide(@PathVariable UUID id) {
+        RideResponseDto ride = rideService.approveRide(id);
+        return ResponseEntity.ok(ApiResponse.success(ride, "Ride request approved successfully and marked for scheduling"));
+    }
+
+    @PostMapping("/{id}/reject-request")
+    public ResponseEntity<ApiResponse<RideResponseDto>> rejectRideRequest(
+            @PathVariable UUID id,
+            @Valid @RequestBody RejectRideRequestDto request) {
+        RideResponseDto ride = rideService.rejectRideRequest(id, request);
+        return ResponseEntity.ok(ApiResponse.success(ride, "Ride request rejected successfully"));
     }
 
     @PostMapping("/{id}/schedule")
@@ -157,15 +199,29 @@ public class RideController {
         return ResponseEntity.ok(ApiResponse.success(ride, "Trip completed successfully. Real-time tracking stopped."));
     }
 
-    @GetMapping("/active")
-    public ResponseEntity<ApiResponse<List<RideResponseDto>>> getActiveTrips() {
-        List<RideResponseDto> active = rideService.getActiveTrips();
-        return ResponseEntity.ok(ApiResponse.success(active, "Active trips retrieved successfully"));
+    // ====================================================
+    // FEATURE 7 — DRIVER OPERATIONS CONTROLLER ENDPOINTS
+    // ====================================================
+
+    @PostMapping("/{id}/accept")
+    public ResponseEntity<ApiResponse<RideResponseDto>> acceptRideAssignment(@PathVariable UUID id) {
+        RideResponseDto ride = rideService.acceptRideAssignment(id);
+        return ResponseEntity.ok(ApiResponse.success(ride, "Ride assignment accepted successfully. Please proceed to pickup location."));
     }
 
-    @GetMapping("/driver-assigned")
-    public ResponseEntity<ApiResponse<List<RideResponseDto>>> getDriverAssignedTrips() {
-        List<RideResponseDto> assigned = rideService.getDriverAssignedTrips();
-        return ResponseEntity.ok(ApiResponse.success(assigned, "Driver assigned trips retrieved successfully"));
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse<RideResponseDto>> rejectRideAssignment(
+            @PathVariable UUID id,
+            @Valid @RequestBody RejectRideRequestDto request) {
+        RideResponseDto ride = rideService.rejectRideAssignment(id, request);
+        return ResponseEntity.ok(ApiResponse.success(ride, "Ride assignment rejected. Transport manager has been notified."));
+    }
+
+    @PostMapping("/{id}/verify-employee")
+    public ResponseEntity<ApiResponse<RideResponseDto>> verifyEmployeeForRide(
+            @PathVariable UUID id,
+            @Valid @RequestBody EmployeeVerificationRequestDto request) {
+        RideResponseDto ride = rideService.verifyEmployeeForRide(id, request);
+        return ResponseEntity.ok(ApiResponse.success(ride, "Employee passenger verified successfully. You may now start the ride."));
     }
 }

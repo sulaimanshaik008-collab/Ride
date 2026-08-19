@@ -117,6 +117,7 @@ public class RideTrackingServiceTest {
                 .bookingDate(LocalDate.now())
                 .pickupTime(LocalTime.now())
                 .status(RideStatus.ASSIGNED)
+                .employeeVerifiedAt(java.time.OffsetDateTime.now())
                 .build());
 
         UserPrincipal principal = UserPrincipal.builder()

@@ -162,4 +162,14 @@ class RideSchedulingControllerTest {
                 .andExpect(jsonPath("$.data", hasSize(greaterThanOrEqualTo(1))))
                 .andExpect(jsonPath("$.data[0].status", is("SCHEDULED")));
     }
+
+    @Test
+    @DisplayName("POST /api/v1/rides/{id}/approve - Approve Ride Request by Transport Manager")
+    void approveRide_Success() throws Exception {
+        mockMvc.perform(post("/api/v1/rides/{id}/approve", testRide.getId())
+                        .header("X-User-Email", managerUser.getEmail()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.status", is("SCHEDULED")));
+    }
 }

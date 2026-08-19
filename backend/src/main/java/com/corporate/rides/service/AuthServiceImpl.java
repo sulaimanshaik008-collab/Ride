@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -25,6 +26,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
+    private final com.corporate.rides.repository.DriverRepository driverRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -96,9 +98,35 @@ public class AuthServiceImpl implements AuthService {
                 existing.setDepartment(request.getDepartment().trim());
                 updated = true;
             }
+            if (request != null && request.getRole() != null && !request.getRole().isBlank()) {
+                try {
+                    UserRole reqRole = UserRole.valueOf(request.getRole().trim().toUpperCase());
+                    if (existing.getRole() != reqRole) {
+                        existing.setRole(reqRole);
+                        updated = true;
+                    }
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
             if (updated) {
                 existing = userRepository.save(existing);
             }
+
+            if (existing.getRole() == UserRole.DRIVER) {
+                final User driverUserRef = existing;
+                final String lic = "DL-" + driverUserRef.getEmail().replaceAll("[^a-zA-Z0-9]", "").toUpperCase().substring(0, Math.min(10, driverUserRef.getEmail().length()));
+                driverRepository.findByUserId(driverUserRef.getId()).orElseGet(() -> driverRepository.save(
+                        com.corporate.rides.entity.Driver.builder()
+                                .user(driverUserRef)
+                                .organization(driverUserRef.getOrganization())
+                                .licenseNumber(lic)
+                                .licenseExpiryDate(LocalDate.now().plusYears(3))
+                                .driverStatus(com.corporate.rides.enums.DriverStatus.ACTIVE)
+                                .availabilityStatus(com.corporate.rides.enums.DriverAvailability.AVAILABLE)
+                                .build()
+                ));
+            }
+
             return mapToDto(existing);
         }
 
@@ -144,6 +172,21 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         User saved = userRepository.save(newUser);
+
+        if (assignedRole == UserRole.DRIVER) {
+            final String lic = "DL-" + finalEmail.replaceAll("[^a-zA-Z0-9]", "").toUpperCase().substring(0, Math.min(10, finalEmail.length()));
+            driverRepository.findByUserId(saved.getId()).orElseGet(() -> driverRepository.save(
+                    com.corporate.rides.entity.Driver.builder()
+                            .user(saved)
+                            .organization(org)
+                            .licenseNumber(lic)
+                            .licenseExpiryDate(LocalDate.now().plusYears(3))
+                            .driverStatus(com.corporate.rides.enums.DriverStatus.ACTIVE)
+                            .availabilityStatus(com.corporate.rides.enums.DriverAvailability.AVAILABLE)
+                            .build()
+            ));
+        }
+
         return mapToDto(saved);
     }
 

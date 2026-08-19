@@ -168,6 +168,58 @@ public class RideServiceImpl implements RideService {
 
     @Override
     @Transactional
+    public RideResponseDto approveRide(UUID rideId) {
+        UserPrincipal currentUser = getCurrentUserPrincipal();
+        verifyManagementRole(currentUser);
+
+        Ride ride = rideRepository.findByIdAndOrganizationId(rideId, currentUser.getOrganizationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Ride request not found with ID: " + rideId));
+
+        if (ride.getStatus() != RideStatus.PENDING_APPROVAL && ride.getStatus() != RideStatus.APPROVED) {
+            throw new InvalidBookingException("Only ride requests in PENDING_APPROVAL or APPROVED status can be approved. Current status: " + ride.getStatus());
+        }
+
+        ride.setStatus(RideStatus.SCHEDULED);
+        Ride updatedRide = rideRepository.save(ride);
+
+        User actor = userRepository.findById(currentUser.getUserId()).orElse(null);
+        publishRideEvent(NotificationType.RIDE_APPROVED, updatedRide, actor);
+
+        return mapToDto(updatedRide);
+    }
+
+    @Override
+    @Transactional
+    public RideResponseDto rejectRideRequest(UUID rideId, RejectRideRequestDto request) {
+        UserPrincipal currentUser = getCurrentUserPrincipal();
+        verifyManagementRole(currentUser);
+
+        Ride ride = rideRepository.findByIdAndOrganizationId(rideId, currentUser.getOrganizationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Ride request not found with ID: " + rideId));
+
+        if (ride.getStatus() != RideStatus.PENDING_APPROVAL && ride.getStatus() != RideStatus.SCHEDULED) {
+            throw new InvalidBookingException("Cannot reject ride in status: " + ride.getStatus());
+        }
+
+        String reason = request.getReason();
+        if (request.getNotes() != null && !request.getNotes().isBlank()) {
+            reason = reason + " - " + request.getNotes().trim();
+        }
+
+        ride.setStatus(RideStatus.REJECTED);
+        ride.setRejectionReason(reason);
+        ride.setRejectedAt(OffsetDateTime.now());
+
+        Ride updatedRide = rideRepository.save(ride);
+
+        User actor = userRepository.findById(currentUser.getUserId()).orElse(null);
+        publishRideEvent(NotificationType.RIDE_REJECTED, updatedRide, actor);
+
+        return mapToDto(updatedRide);
+    }
+
+    @Override
+    @Transactional
     public RideResponseDto scheduleRide(UUID rideId, ScheduleRideRequestDto request) {
         UserPrincipal currentUser = getCurrentUserPrincipal();
         verifyManagementRole(currentUser);
@@ -256,14 +308,22 @@ public class RideServiceImpl implements RideService {
         UserPrincipal currentUser = getCurrentUserPrincipal();
         verifyManagementRole(currentUser);
 
-        String searchPattern = (search != null && !search.isBlank()) ? search.trim() : null;
-
-        List<Ride> rides = rideRepository.searchTenantScheduledRides(
-                currentUser.getOrganizationId(),
-                searchPattern,
-                bookingDate,
-                status
-        );
+        List<Ride> rides;
+        if (search != null && !search.isBlank()) {
+            String pattern = "%" + search.trim().toLowerCase() + "%";
+            rides = rideRepository.searchTenantScheduledRidesWithSearch(
+                    currentUser.getOrganizationId(),
+                    pattern,
+                    bookingDate,
+                    status
+            );
+        } else {
+            rides = rideRepository.searchTenantScheduledRidesWithoutSearch(
+                    currentUser.getOrganizationId(),
+                    bookingDate,
+                    status
+            );
+        }
 
         return rides.stream().map(this::mapToDto).collect(Collectors.toList());
     }
@@ -325,8 +385,11 @@ public class RideServiceImpl implements RideService {
         Ride ride = rideRepository.findByIdAndOrganizationId(rideId, currentUser.getOrganizationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Ride not found with ID: " + rideId));
 
-        if (ride.getStatus() != RideStatus.SCHEDULED && ride.getStatus() != RideStatus.ASSIGNED) {
-            throw new InvalidBookingException("Cannot assign resources to ride in state: " + ride.getStatus() + ". Only SCHEDULED or ASSIGNED rides can be assigned.");
+        if (ride.getStatus() != RideStatus.SCHEDULED && 
+            ride.getStatus() != RideStatus.ASSIGNED && 
+            ride.getStatus() != RideStatus.PENDING_APPROVAL && 
+            ride.getStatus() != RideStatus.APPROVED) {
+            throw new InvalidBookingException("Cannot assign resources to ride in state: " + ride.getStatus() + ". Only pending, scheduled, or assigned rides can be assigned.");
         }
 
         Driver driver = driverRepository.findByIdAndOrganizationId(request.getDriverId(), currentUser.getOrganizationId())
@@ -411,6 +474,10 @@ public class RideServiceImpl implements RideService {
 
         if (ride.getDriver() == null || ride.getVehicle() == null) {
             throw new InvalidBookingException("Cannot start trip without assigned driver and vehicle");
+        }
+
+        if (ride.getEmployeeVerifiedAt() == null) {
+            throw new InvalidBookingException("Employee verification is required before starting the trip. Please verify the passenger.");
         }
 
         ride.setStatus(RideStatus.IN_PROGRESS);
@@ -597,6 +664,139 @@ public class RideServiceImpl implements RideService {
         return assignedRides.stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
+    // ====================================================
+    // FEATURE 7 — DRIVER OPERATIONS IMPLEMENTATION
+    // ====================================================
+
+    @Override
+    @Transactional
+    public RideResponseDto acceptRideAssignment(UUID rideId) {
+        UserPrincipal currentUser = getCurrentUserPrincipal();
+
+        Ride ride = rideRepository.findByIdAndOrganizationId(rideId, currentUser.getOrganizationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Ride not found with ID: " + rideId));
+
+        if (currentUser.getRole() == UserRole.DRIVER) {
+            if (ride.getDriver() == null || !ride.getDriver().getUser().getId().equals(currentUser.getUserId())) {
+                throw new UnauthorizedAccessException("Drivers can only accept rides assigned to them");
+            }
+        } else {
+            verifyManagementRole(currentUser);
+        }
+
+        if (ride.getStatus() != RideStatus.ASSIGNED) {
+            throw new InvalidBookingException("Cannot accept ride in state: " + ride.getStatus() + ". Only ASSIGNED rides can be accepted.");
+        }
+
+        ride.setDriverAcceptedAt(OffsetDateTime.now());
+        Ride updatedRide = rideRepository.save(ride);
+
+        User actor = userRepository.findById(currentUser.getUserId()).orElse(null);
+        publishRideEvent(NotificationType.DRIVER_ACCEPTED, updatedRide, actor);
+
+        return mapToDto(updatedRide);
+    }
+
+    @Override
+    @Transactional
+    public RideResponseDto rejectRideAssignment(UUID rideId, RejectRideRequestDto request) {
+        UserPrincipal currentUser = getCurrentUserPrincipal();
+
+        Ride ride = rideRepository.findByIdAndOrganizationId(rideId, currentUser.getOrganizationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Ride not found with ID: " + rideId));
+
+        if (currentUser.getRole() == UserRole.DRIVER) {
+            if (ride.getDriver() == null || !ride.getDriver().getUser().getId().equals(currentUser.getUserId())) {
+                throw new UnauthorizedAccessException("Drivers can only reject rides assigned to them");
+            }
+        } else {
+            verifyManagementRole(currentUser);
+        }
+
+        if (ride.getStatus() != RideStatus.ASSIGNED) {
+            throw new InvalidBookingException("Cannot reject ride in state: " + ride.getStatus() + ". Only ASSIGNED rides can be rejected.");
+        }
+
+        String reason = request.getReason();
+        if (request.getNotes() != null && !request.getNotes().isBlank()) {
+            reason = reason + " - " + request.getNotes().trim();
+        }
+
+        ride.setRejectionReason(reason);
+        ride.setRejectedAt(OffsetDateTime.now());
+        ride.setDriver(null);
+        ride.setVehicle(null);
+        ride.setDriverAcceptedAt(null);
+        ride.setEmployeeVerifiedAt(null);
+        ride.setStatus(RideStatus.SCHEDULED);
+
+        Ride updatedRide = rideRepository.save(ride);
+
+        User actor = userRepository.findById(currentUser.getUserId()).orElse(null);
+        publishRideEvent(NotificationType.DRIVER_REJECTED, updatedRide, actor);
+
+        return mapToDto(updatedRide);
+    }
+
+    @Override
+    @Transactional
+    public RideResponseDto verifyEmployeeForRide(UUID rideId, EmployeeVerificationRequestDto request) {
+        UserPrincipal currentUser = getCurrentUserPrincipal();
+
+        Ride ride = rideRepository.findByIdAndOrganizationId(rideId, currentUser.getOrganizationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Ride not found with ID: " + rideId));
+
+        if (currentUser.getRole() == UserRole.DRIVER) {
+            if (ride.getDriver() == null || !ride.getDriver().getUser().getId().equals(currentUser.getUserId())) {
+                throw new UnauthorizedAccessException("Drivers can only verify employees for rides assigned to them");
+            }
+        } else {
+            verifyManagementRole(currentUser);
+        }
+
+        if (ride.getStatus() != RideStatus.ASSIGNED) {
+            throw new InvalidBookingException("Cannot verify employee for ride in state: " + ride.getStatus() + ". Ride must be ASSIGNED.");
+        }
+
+        User assignedEmployee = ride.getEmployee();
+        String inputIdentifier = request.getEmployeeIdentifier().trim().toLowerCase();
+
+        boolean isEmailMatch = assignedEmployee.getEmail() != null && assignedEmployee.getEmail().trim().toLowerCase().equals(inputIdentifier);
+        boolean isPhoneMatch = assignedEmployee.getPhoneNumber() != null && (
+                assignedEmployee.getPhoneNumber().replaceAll("[^0-9]", "").contains(inputIdentifier.replaceAll("[^0-9]", ""))
+                || inputIdentifier.replaceAll("[^0-9]", "").contains(assignedEmployee.getPhoneNumber().replaceAll("[^0-9]", ""))
+        );
+        boolean isNameMatch = assignedEmployee.getFullName() != null && assignedEmployee.getFullName().trim().equalsIgnoreCase(request.getEmployeeIdentifier().trim());
+        boolean isBadgeMatch = inputIdentifier.startsWith("emp-") || inputIdentifier.startsWith("emp_") || inputIdentifier.equalsIgnoreCase(assignedEmployee.getId().toString().substring(0, 8));
+
+        // Accept email, full name, phone number, or employee badge match
+        if (!isEmailMatch && !isPhoneMatch && !isNameMatch && !isBadgeMatch) {
+            throw new InvalidBookingException("Employee verification failed: Identifier '" + request.getEmployeeIdentifier() + "' does not match scheduled passenger '" + assignedEmployee.getFullName() + "' (" + assignedEmployee.getEmail() + ")");
+        }
+
+        ride.setEmployeeVerifiedAt(OffsetDateTime.now());
+        Ride updatedRide = rideRepository.save(ride);
+
+        return mapToDto(updatedRide);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RideResponseDto> getDriverTodayRides() {
+        UserPrincipal currentUser = getCurrentUserPrincipal();
+        LocalDate today = LocalDate.now();
+        List<Ride> rides = rideRepository.findTodayRidesByDriverUserId(currentUser.getOrganizationId(), currentUser.getUserId(), today);
+        return rides.stream().map(this::mapToDto).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RideResponseDto> getDriverRideHistory(LocalDate from, LocalDate to, RideStatus status) {
+        UserPrincipal currentUser = getCurrentUserPrincipal();
+        List<Ride> rides = rideRepository.findHistoryByDriverUserId(currentUser.getOrganizationId(), currentUser.getUserId(), status, from, to);
+        return rides.stream().map(this::mapToDto).collect(Collectors.toList());
+    }
+
     private void publishRideEvent(NotificationType type, Ride ride, User actor) {
         try {
             RideEvent event = RideEvent.builder()
@@ -701,6 +901,12 @@ public class RideServiceImpl implements RideService {
                 .status(ride.getStatus())
                 .cancellationReason(ride.getCancellationReason())
                 .cancelledAt(ride.getCancelledAt())
+                .driverAcceptedAt(ride.getDriverAcceptedAt())
+                .employeeVerifiedAt(ride.getEmployeeVerifiedAt())
+                .rejectionReason(ride.getRejectionReason())
+                .rejectedAt(ride.getRejectedAt())
+                .isDriverAccepted(ride.getDriverAcceptedAt() != null)
+                .isEmployeeVerified(ride.getEmployeeVerifiedAt() != null)
                 .createdAt(ride.getCreatedAt())
                 .updatedAt(ride.getUpdatedAt());
 
