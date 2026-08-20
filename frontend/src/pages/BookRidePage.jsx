@@ -92,13 +92,15 @@ export const BookRidePage = () => {
   const todayStr = new Date().toISOString().split('T')[0];
 
   const [pickup, setPickup] = useState({
-    address: '35/1, Muniyandi Kovil Ln, near Saravana Multi-Speciality Hospital Pvt Ltd',
-    coordinates: [78.1198, 9.9252],
+    address: '',
+    coordinates: null,
+    placeId: null,
   });
 
   const [destination, setDestination] = useState({
-    address: 'Mattuthavani Omni Bus Stand',
-    coordinates: [78.1565, 9.9485],
+    address: '',
+    coordinates: null,
+    placeId: null,
   });
 
   // Panel view state: 'main' | 'schedule'
@@ -106,8 +108,8 @@ export const BookRidePage = () => {
 
   const [selectedTier, setSelectedTier] = useState('uber-go');
   const [isScheduled, setIsScheduled] = useState(false);
-  const [bookingDate, setBookingDate] = useState('2026-09-14');
-  const [pickupTime, setPickupTime] = useState('20:10');
+  const [bookingDate, setBookingDate] = useState(todayStr);
+  const [pickupTime, setPickupTime] = useState('08:30');
   
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -117,6 +119,7 @@ export const BookRidePage = () => {
   const [selectionMode, setSelectionMode] = useState('PICKUP');
 
   const [routeDetails, setRouteDetails] = useState(null);
+  const [routeCalculating, setRouteCalculating] = useState(false);
   const [bookingNotes, setBookingNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -125,32 +128,37 @@ export const BookRidePage = () => {
 
   const handlePickupSelectFromMap = (loc) => {
     if (!loc) {
-      setPickup({ address: '', coordinates: null });
+      setPickup({ address: '', coordinates: null, placeId: null });
+      setRouteDetails(null);
       return;
     }
     setPickup({
       address: loc.address || `Location (${loc.coordinates[1].toFixed(4)}, ${loc.coordinates[0].toFixed(4)})`,
       coordinates: loc.coordinates,
+      placeId: loc.placeId || null,
     });
     if (error) setError(null);
   };
 
   const handleDestinationSelectFromMap = (loc) => {
     if (!loc) {
-      setDestination({ address: '', coordinates: null });
+      setDestination({ address: '', coordinates: null, placeId: null });
+      setRouteDetails(null);
       return;
     }
     setDestination({
       address: loc.address || `Location (${loc.coordinates[1].toFixed(4)}, ${loc.coordinates[0].toFixed(4)})`,
       coordinates: loc.coordinates,
+      placeId: loc.placeId || null,
     });
     if (error) setError(null);
   };
 
   const handleClearAll = () => {
-    setPickup({ address: '', coordinates: null });
-    setDestination({ address: '', coordinates: null });
+    setPickup({ address: '', coordinates: null, placeId: null });
+    setDestination({ address: '', coordinates: null, placeId: null });
     setRouteDetails(null);
+    setRouteCalculating(false);
     setSelectionMode('PICKUP');
     setError(null);
   };
@@ -170,12 +178,12 @@ export const BookRidePage = () => {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
 
-    if (!pickup.address.trim()) {
-      setError('Please enter a pickup location');
+    if (!pickup.address || !pickup.address.trim()) {
+      setError('Please enter or select a pickup location');
       return;
     }
-    if (!destination.address.trim()) {
-      setError('Please enter a destination');
+    if (!destination.address || !destination.address.trim()) {
+      setError('Please enter or select a destination');
       return;
     }
     if (pickup.address.trim().toLowerCase() === destination.address.trim().toLowerCase()) {
@@ -190,10 +198,10 @@ export const BookRidePage = () => {
       const payload = {
         pickupLocation: pickup.address.trim(),
         destination: destination.address.trim(),
-        pickupLatitude: pickup.coordinates ? pickup.coordinates[1] : 9.9252,
-        pickupLongitude: pickup.coordinates ? pickup.coordinates[0] : 78.1198,
-        destinationLatitude: destination.coordinates ? destination.coordinates[1] : 9.9485,
-        destinationLongitude: destination.coordinates ? destination.coordinates[0] : 78.1565,
+        pickupLatitude: pickup.coordinates ? pickup.coordinates[1] : 10.7905,
+        pickupLongitude: pickup.coordinates ? pickup.coordinates[0] : 78.7047,
+        destinationLatitude: destination.coordinates ? destination.coordinates[1] : 10.7932,
+        destinationLongitude: destination.coordinates ? destination.coordinates[0] : 78.6856,
         bookingDate: isScheduled ? bookingDate : todayStr,
         pickupTime: isScheduled ? pickupTime : new Date().toTimeString().slice(0, 5),
         bookingNotes: bookingNotes.trim() ? `${bookingNotes.trim()} (${selectedTier})` : `Tier: ${selectedTier}`,
@@ -442,19 +450,28 @@ export const BookRidePage = () => {
               <LocationSearchInput
                 id="uber-pickup-input"
                 label="Pickup location"
-                placeholder="35/1, Muniyandi Kovil Ln, near Santha..."
+                placeholder="Search pickup (e.g. Trichy, Chennai Central...)"
                 value={pickup.address}
-                onChange={(val) => setPickup((prev) => ({ ...prev, address: val }))}
+                onChange={(val) => {
+                  setPickup((prev) => ({ ...prev, address: val }));
+                  if (!val || val.trim() === '') {
+                    setPickup({ address: '', coordinates: null, placeId: null });
+                    setRouteDetails(null);
+                  }
+                }}
                 onSelectLocation={(loc) => {
                   if (loc) {
-                    setPickup({ address: loc.address, coordinates: loc.coordinates });
+                    setPickup({ address: loc.address, coordinates: loc.coordinates, placeId: loc.placeId });
                     setSelectionMode('DESTINATION');
+                    if (destination.coordinates) {
+                      setRouteCalculating(true);
+                    }
                   } else {
-                    setPickup({ address: '', coordinates: null });
+                    setPickup({ address: '', coordinates: null, placeId: null });
+                    setRouteDetails(null);
                   }
                 }}
                 iconType="pickup"
-                proximity={pickup.coordinates || [78.1198, 9.9252]}
               />
             </div>
 
@@ -463,21 +480,91 @@ export const BookRidePage = () => {
               <LocationSearchInput
                 id="uber-destination-input"
                 label="Destination"
-                placeholder="Mattuthavani Omni Bus Stand"
+                placeholder="Search destination (e.g. Airport, Railway Station...)"
                 value={destination.address}
-                onChange={(val) => setDestination((prev) => ({ ...prev, address: val }))}
+                onChange={(val) => {
+                  setDestination((prev) => ({ ...prev, address: val }));
+                  if (!val || val.trim() === '') {
+                    setDestination({ address: '', coordinates: null, placeId: null });
+                    setRouteDetails(null);
+                  }
+                }}
                 onSelectLocation={(loc) => {
                   if (loc) {
-                    setDestination({ address: loc.address, coordinates: loc.coordinates });
+                    setDestination({ address: loc.address, coordinates: loc.coordinates, placeId: loc.placeId });
                     setSelectionMode(null);
+                    if (pickup.coordinates) {
+                      setRouteCalculating(true);
+                    }
                   } else {
-                    setDestination({ address: '', coordinates: null });
+                    setDestination({ address: '', coordinates: null, placeId: null });
+                    setRouteDetails(null);
                   }
                 }}
                 iconType="destination"
-                proximity={destination.coordinates || [78.1565, 9.9485]}
               />
             </div>
+
+            {/* LIVE DRIVING ROUTE ESTIMATE STRIP */}
+            {pickup.coordinates && destination.coordinates && (
+              <div
+                style={{
+                  padding: '0.75rem 1rem',
+                  borderRadius: '12px',
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  border: '1.5px solid rgba(16, 185, 129, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      background: '#164032',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff',
+                    }}
+                  >
+                    <Navigation size={14} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                      Road Route Calculated
+                    </div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f2920' }}>
+                      {routeDetails ? (
+                        <>
+                          <span>{routeDetails.distanceText}</span>
+                          <span style={{ margin: '0 0.35rem', color: '#94a3b8' }}>&bull;</span>
+                          <span style={{ color: '#059669' }}>{routeDetails.durationText}</span>
+                        </>
+                      ) : (
+                        <span style={{ color: '#059669' }}>Finding best route...</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    padding: '0.25rem 0.55rem',
+                    borderRadius: '6px',
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    color: '#047857',
+                  }}
+                >
+                  DRIVING
+                </span>
+              </div>
+            )}
 
             {/* PICKUP TIME SELECTOR (Opens Uber Scheduling View) */}
             <div
@@ -486,7 +573,7 @@ export const BookRidePage = () => {
               style={{ cursor: 'pointer' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Clock size={16} />
+                <Clock size={16} color="#164032" />
                 <span>
                   {isScheduled
                     ? `${formatDisplayDate(bookingDate)}, ${formatDisplayTime(pickupTime)}`
@@ -503,7 +590,7 @@ export const BookRidePage = () => {
                 className="uber-pill-btn"
                 onClick={() => setShowRiderDropdown(!showRiderDropdown)}
               >
-                <User size={15} />
+                <User size={15} color="#164032" />
                 <span>{riderName}</span>
                 <ChevronDown size={14} />
               </button>
@@ -515,15 +602,15 @@ export const BookRidePage = () => {
                     top: '110%',
                     left: 0,
                     zIndex: 20,
-                    background: 'var(--bg-card, #14171b)',
-                    border: '1px solid var(--border-glass, rgba(255, 255, 255, 0.15))',
-                    borderRadius: '10px',
-                    padding: '0.4rem',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '0.45rem',
+                    boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '0.25rem',
-                    minWidth: '160px',
+                    minWidth: '180px',
                   }}
                 >
                   <button
@@ -532,8 +619,17 @@ export const BookRidePage = () => {
                       setRiderName('For me');
                       setShowRiderDropdown(false);
                     }}
-                    className="btn btn-secondary"
-                    style={{ textAlign: 'left', padding: '0.4rem 0.65rem', fontSize: '0.8rem', border: 'none' }}
+                    style={{
+                      textAlign: 'left',
+                      padding: '0.5rem 0.75rem',
+                      fontSize: '0.825rem',
+                      fontWeight: 600,
+                      color: '#0f172a',
+                      background: riderName === 'For me' ? 'rgba(22, 64, 50, 0.08)' : 'transparent',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                    }}
                   >
                     👤 For me ({currentUser?.fullName || 'Self'})
                   </button>
@@ -543,8 +639,17 @@ export const BookRidePage = () => {
                       setRiderName('For Colleague');
                       setShowRiderDropdown(false);
                     }}
-                    className="btn btn-secondary"
-                    style={{ textAlign: 'left', padding: '0.4rem 0.65rem', fontSize: '0.8rem', border: 'none' }}
+                    style={{
+                      textAlign: 'left',
+                      padding: '0.5rem 0.75rem',
+                      fontSize: '0.825rem',
+                      fontWeight: 600,
+                      color: '#0f172a',
+                      background: riderName === 'For Colleague' ? 'rgba(22, 64, 50, 0.08)' : 'transparent',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                    }}
                   >
                     👥 For Colleague / Guest
                   </button>

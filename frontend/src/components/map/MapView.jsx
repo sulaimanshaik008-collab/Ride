@@ -37,10 +37,11 @@ const DirectionsRenderer = ({
     const renderer = new routesLib.DirectionsRenderer({
       map,
       suppressMarkers: true,
+      preserveViewport: false,
       polylineOptions: {
         strokeColor: '#000000',
-        strokeWeight: 5,
-        strokeOpacity: 1.0,
+        strokeWeight: 6,
+        strokeOpacity: 0.95,
       },
     });
     setDirectionsRenderer(renderer);
@@ -62,22 +63,34 @@ const DirectionsRenderer = ({
     let isMounted = true;
 
     const fetchRoute = async () => {
-      const directions = await googleMapsService.getDirections(pickupCoords, destCoords);
-      if (!isMounted) return;
+      try {
+        const directions = await googleMapsService.getDirections(pickupCoords, destCoords);
+        if (!isMounted) return;
 
-      onRouteCalculated(directions);
+        onRouteCalculated(directions);
 
-      if (directionsRenderer && directions?.rawResult) {
-        directionsRenderer.setDirections(directions.rawResult);
-      } else if (map && directions?.bounds) {
-        const [[minLng, minLat], [maxLng, maxLat]] = directions.bounds;
-        if (window.google?.maps?.LatLngBounds) {
-          const bounds = new window.google.maps.LatLngBounds(
-            { lat: minLat, lng: minLng },
-            { lat: maxLat, lng: maxLng }
-          );
-          map.fitBounds(bounds, { top: 70, bottom: 70, left: 60, right: 60 });
+        if (directionsRenderer && directions?.rawResult) {
+          directionsRenderer.setDirections(directions.rawResult);
+          if (directions.rawResult.routes?.[0]?.bounds && map) {
+            map.fitBounds(directions.rawResult.routes[0].bounds, {
+              top: 80,
+              bottom: 80,
+              left: 80,
+              right: 80,
+            });
+          }
+        } else if (map && directions?.bounds) {
+          const [[minLng, minLat], [maxLng, maxLat]] = directions.bounds;
+          if (window.google?.maps?.LatLngBounds) {
+            const bounds = new window.google.maps.LatLngBounds(
+              { lat: minLat, lng: minLng },
+              { lat: maxLat, lng: maxLng }
+            );
+            map.fitBounds(bounds, { top: 80, bottom: 80, left: 80, right: 80 });
+          }
         }
+      } catch (err) {
+        console.warn('Failed to calculate road route:', err);
       }
     };
 

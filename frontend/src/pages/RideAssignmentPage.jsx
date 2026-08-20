@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   UserCheck, Car, ShieldAlert, CheckCircle, XCircle, 
   Clock, MapPin, Calendar, RefreshCw, Edit3, Eye, User, 
-  AlertCircle, ArrowRight, ShieldCheck, Wrench, ChevronRight
+  AlertCircle, ArrowRight, ShieldCheck, Wrench, ChevronRight, X
 } from 'lucide-react';
 import { rideService } from '../services/rideService';
 import { useAuth } from '../context/AuthContext';
@@ -111,32 +111,31 @@ export const RideAssignmentPage = () => {
   const handleAssignSubmit = async (e) => {
     e.preventDefault();
     const targetRide = assignModalRide || replaceModalRide;
-    if (!targetRide || !selectedDriverId || !selectedVehicleId) return;
+    if (!targetRide) return;
+
+    if (!selectedDriverId || !selectedVehicleId) {
+      setFormError('Please select both an eligible driver and an active vehicle');
+      return;
+    }
 
     try {
       setFormLoading(true);
       setFormError(null);
-
-      const requestBody = {
+      await rideService.assignDriverAndVehicle(targetRide.id, {
         driverId: selectedDriverId,
         vehicleId: selectedVehicleId,
-      };
-
-      if (replaceModalRide) {
-        await rideService.replaceRideAssignment(replaceModalRide.id, requestBody);
-      } else {
-        await rideService.assignRideResources(assignModalRide.id, requestBody);
-      }
+      });
 
       setAssignModalRide(null);
       setReplaceModalRide(null);
+
       if (activeTab === 'pending') {
         fetchPending();
       } else {
         fetchAssigned();
       }
     } catch (err) {
-      setFormError(err.message || 'Failed to assign resources');
+      setFormError(err.message || 'Failed to assign resources to ride');
     } finally {
       setFormLoading(false);
     }
@@ -149,23 +148,16 @@ export const RideAssignmentPage = () => {
     try {
       setFormLoading(true);
       setFormError(null);
-
-      await rideService.unassignRideResources(unassignModalRide.id);
-
+      await rideService.unassignRide(unassignModalRide.id);
       setUnassignModalRide(null);
-      if (activeTab === 'pending') {
-        fetchPending();
-      } else {
-        fetchAssigned();
-      }
+      fetchAssigned();
     } catch (err) {
-      setFormError(err.message || 'Failed to unassign resources');
+      setFormError(err.message || 'Failed to unassign ride resources');
     } finally {
       setFormLoading(false);
     }
   };
 
-  // Metrics
   const pendingCount = pendingRides.length;
   const assignedCount = assignedRides.length;
   const eligibleDriversCount = assignmentOptions.eligibleDrivers.length;
@@ -173,89 +165,121 @@ export const RideAssignmentPage = () => {
 
   if (!isManager) {
     return (
-      <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
+      <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '20px', textAlign: 'center', padding: '3rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
         <ShieldAlert size={48} color="#ef4444" style={{ margin: '0 auto 1rem' }} />
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', marginBottom: '0.5rem' }}>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f2920', marginBottom: '0.5rem' }}>
           Access Restricted
         </h2>
-        <p style={{ color: 'var(--text-muted)' }}>
-          Driver & Vehicle Resource Assignment is reserved for Transport Managers and Corporate Administrators.
+        <p style={{ color: '#64748b' }}>
+          Driver & Vehicle assignment operations are restricted to authorized transport managers.
         </p>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 className="page-title">Driver & Vehicle Resource Assignment</h1>
-          <p className="page-subtitle">
-            Assign active corporate drivers and vehicles to scheduled office rides, manage replacements, and prevent scheduling conflicts.
+          <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0f2920', margin: 0, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <UserCheck size={28} color="#059669" />
+            <span>Driver & Vehicle Assignment</span>
+          </h1>
+          <p style={{ color: '#64748b', margin: '0.35rem 0 0', fontSize: '0.9rem', fontWeight: 500 }}>
+            Allocate eligible active drivers and corporate fleet vehicles to approved employee ride bookings.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.04)', padding: '0.3rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        {/* TAB TOGGLE */}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
+            type="button"
             onClick={() => setActiveTab('pending')}
-            className={`btn ${activeTab === 'pending' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              padding: '0.55rem 1.1rem',
+              borderRadius: '8px',
+              border: activeTab === 'pending' ? '1.5px solid #059669' : '1.5px solid #e2e8f0',
+              background: activeTab === 'pending' ? 'linear-gradient(180deg, #184738 0%, #103327 100%)' : '#ffffff',
+              color: activeTab === 'pending' ? '#ffffff' : '#475569',
+              cursor: 'pointer',
+            }}
           >
             <Clock size={16} />
-            Pending Assignment ({pendingCount})
+            <span>Pending Assignment ({pendingCount})</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('assigned')}
-            className={`btn ${activeTab === 'assigned' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              padding: '0.55rem 1.1rem',
+              borderRadius: '8px',
+              border: activeTab === 'assigned' ? '1.5px solid #059669' : '1.5px solid #e2e8f0',
+              background: activeTab === 'assigned' ? 'linear-gradient(180deg, #184738 0%, #103327 100%)' : '#ffffff',
+              color: activeTab === 'assigned' ? '#ffffff' : '#475569',
+              cursor: 'pointer',
+            }}
           >
             <UserCheck size={16} />
-            Assigned Fleet ({assignedCount})
+            <span>Assigned Fleet ({assignedCount})</span>
           </button>
         </div>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && (
+        <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', color: '#ef4444', padding: '1rem 1.25rem', borderRadius: '12px', fontWeight: 700 }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       {/* KPI METRIC CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.75rem' }}>
-        <div className="glass-card" style={{ padding: '1.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+        <div style={{ background: '#ffffff', border: `1.5px solid ${pendingCount > 0 ? '#fde68a' : '#e2e8f0'}`, borderLeft: pendingCount > 0 ? '4px solid #d97706' : '1.5px solid #e2e8f0', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>Awaiting Assignment</span>
-            <Clock size={20} color="#f59e0b" />
+            <span style={{ color: pendingCount > 0 ? '#d97706' : '#64748b', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase' }}>Awaiting Assignment</span>
+            <Clock size={20} color={pendingCount > 0 ? '#d97706' : '#9ca3af'} />
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fbbf24', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: pendingCount > 0 ? '#d97706' : '#0f2920', marginTop: '0.35rem' }}>
             {pendingCount}
           </div>
         </div>
 
-        <div className="glass-card" style={{ padding: '1.25rem' }}>
+        <div style={{ background: '#ffffff', border: '1.5px solid #a7f3d0', borderLeft: '4px solid #059669', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>Assigned Rides</span>
-            <CheckCircle size={20} color="#10b981" />
+            <span style={{ color: '#059669', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase' }}>Assigned Rides</span>
+            <CheckCircle size={20} color="#059669" />
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#34d399', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: '#059669', marginTop: '0.35rem' }}>
             {assignedCount}
           </div>
         </div>
 
-        <div className="glass-card" style={{ padding: '1.25rem' }}>
+        <div style={{ background: '#ffffff', border: '1.5px solid #bfdbfe', borderLeft: '4px solid #2563eb', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>Available Drivers</span>
-            <UserCheck size={20} color="#6366f1" />
+            <span style={{ color: '#2563eb', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase' }}>Available Drivers</span>
+            <UserCheck size={20} color="#2563eb" />
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: '#0f2920', marginTop: '0.35rem' }}>
             {eligibleDriversCount > 0 ? eligibleDriversCount : 'Active Pool'}
           </div>
         </div>
 
-        <div className="glass-card" style={{ padding: '1.25rem' }}>
+        <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>Available Fleet</span>
-            <Car size={20} color="#06b6d4" />
+            <span style={{ color: '#64748b', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase' }}>Available Fleet</span>
+            <Car size={20} color="#2563eb" />
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#38bdf8', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 900, color: '#0f2920', marginTop: '0.35rem' }}>
             {eligibleVehiclesCount > 0 ? eligibleVehiclesCount : 'Active Pool'}
           </div>
         </div>
@@ -265,64 +289,90 @@ export const RideAssignmentPage = () => {
       {activeTab === 'pending' && (
         <div>
           {loading ? (
-            <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
-              <p style={{ color: 'var(--text-muted)' }}>Loading rides awaiting driver & vehicle assignment...</p>
+            <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '18px', textAlign: 'center', padding: '4rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+              <RefreshCw size={28} className="spin-animation" style={{ margin: '0 auto 0.75rem', color: '#059669' }} />
+              <p style={{ color: '#64748b', fontWeight: 600 }}>Loading rides awaiting driver & vehicle assignment...</p>
             </div>
           ) : pendingRides.length === 0 ? (
-            <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
-              <CheckCircle size={40} color="#10b981" style={{ margin: '0 auto 1rem' }} />
-              <p style={{ color: '#fff', marginBottom: '0.3rem', fontSize: '1.1rem', fontWeight: 700 }}>
+            <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '18px', textAlign: 'center', padding: '4rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+              <CheckCircle size={40} color="#059669" style={{ margin: '0 auto 0.75rem' }} />
+              <p style={{ color: '#0f2920', marginBottom: '0.25rem', fontSize: '1.1rem', fontWeight: 900 }}>
                 All Scheduled Rides Assigned!
               </p>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+              <p style={{ color: '#64748b', fontSize: '0.88rem' }}>
                 There are currently no scheduled rides pending driver or vehicle assignment.
               </p>
             </div>
           ) : (
-            <div className="rides-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1.25rem' }}>
               {pendingRides.map((ride) => (
-                <div key={ride.id} className="ride-card">
-                  <div className="ride-card-header">
+                <div
+                  key={ride.id}
+                  style={{
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '18px',
+                    padding: '1.5rem',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <span className="booking-ref">{ride.bookingReference}</span>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginTop: '0.2rem' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#2563eb', letterSpacing: '0.5px' }}>{ride.bookingReference}</span>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f2920', margin: '0.2rem 0 0 0' }}>
                         {ride.employeeName}
                       </h3>
                     </div>
                     <StatusBadge status={ride.status} />
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem', margin: '0.75rem 0' }}>
-                    <div className="meta-item">
-                      <MapPin size={14} color="#10b981" />
-                      <span>Pickup: <strong style={{ color: '#fff' }}>{ride.pickupLocation}</strong></span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <MapPin size={14} color="#059669" />
+                      <span style={{ color: '#64748b' }}>Pickup: <strong style={{ color: '#0f2920' }}>{ride.pickupLocation}</strong></span>
                     </div>
 
-                    <div className="meta-item">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <MapPin size={14} color="#ef4444" />
-                      <span>Destination: <strong style={{ color: '#fff' }}>{ride.destination}</strong></span>
+                      <span style={{ color: '#64748b' }}>Destination: <strong style={{ color: '#0f2920' }}>{ride.destination}</strong></span>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.03)', padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)' }}>
-                      <div className="meta-item">
-                        <Calendar size={14} color="#6366f1" />
-                        <span>Date: <strong style={{ color: 'var(--accent-cyan)' }}>{ride.bookingDate}</strong></span>
+                    <div style={{ display: 'flex', gap: '1.5rem', color: '#64748b', background: '#f8faf9', border: '1.5px solid #e2e8f0', padding: '0.65rem 0.85rem', borderRadius: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Calendar size={14} color="#2563eb" />
+                        <span>Date: <strong style={{ color: '#0f2920' }}>{ride.bookingDate}</strong></span>
                       </div>
-                      <div className="meta-item">
-                        <Clock size={14} color="#f59e0b" />
-                        <span>Time: <strong style={{ color: '#fff' }}>{ride.pickupTime}</strong></span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Clock size={14} color="#d97706" />
+                        <span>Time: <strong style={{ color: '#0f2920' }}>{ride.pickupTime}</strong></span>
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1.5px solid #f1f5f9', paddingTop: '0.85rem' }}>
                     <button
+                      type="button"
                       onClick={() => handleOpenAssignModal(ride)}
-                      className="btn btn-primary"
-                      style={{ padding: '0.45rem 0.95rem', fontSize: '0.82rem' }}
+                      style={{
+                        padding: '0.55rem 1.1rem',
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
+                        background: 'linear-gradient(180deg, #184738 0%, #103327 100%)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        boxShadow: '0 2px 10px rgba(19, 56, 44, 0.2)',
+                      }}
                     >
                       <UserCheck size={14} />
-                      Assign Driver & Vehicle
+                      <span>Assign Driver & Vehicle</span>
                     </button>
                   </div>
                 </div>
@@ -336,76 +386,120 @@ export const RideAssignmentPage = () => {
       {activeTab === 'assigned' && (
         <div>
           {loading ? (
-            <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
-              <p style={{ color: 'var(--text-muted)' }}>Loading assigned fleet rides...</p>
+            <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '18px', textAlign: 'center', padding: '4rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+              <RefreshCw size={28} className="spin-animation" style={{ margin: '0 auto 0.75rem', color: '#059669' }} />
+              <p style={{ color: '#64748b', fontWeight: 600 }}>Loading assigned fleet rides...</p>
             </div>
           ) : assignedRides.length === 0 ? (
-            <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem', fontSize: '1.05rem', fontWeight: 600 }}>
+            <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '18px', textAlign: 'center', padding: '4rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+              <Car size={36} color="#059669" style={{ margin: '0 auto 0.75rem' }} />
+              <p style={{ color: '#0f2920', marginBottom: '0.25rem', fontSize: '1.1rem', fontWeight: 900 }}>
                 No assigned rides found
               </p>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>
+              <p style={{ color: '#64748b', fontSize: '0.85rem' }}>
                 Assign resources from the Pending Assignment tab.
               </p>
             </div>
           ) : (
-            <div className="rides-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1.25rem' }}>
               {assignedRides.map((ride) => (
-                <div key={ride.id} className="ride-card">
-                  <div className="ride-card-header">
+                <div
+                  key={ride.id}
+                  style={{
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '18px',
+                    padding: '1.5rem',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <span className="booking-ref">{ride.bookingReference}</span>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginTop: '0.2rem' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#2563eb', letterSpacing: '0.5px' }}>{ride.bookingReference}</span>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f2920', margin: '0.2rem 0 0 0' }}>
                         {ride.employeeName}
                       </h3>
                     </div>
                     <StatusBadge status={ride.status} />
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem', margin: '0.75rem 0' }}>
-                    <div className="meta-item">
-                      <MapPin size={14} color="#10b981" />
-                      <span>Pickup: <strong style={{ color: '#fff' }}>{ride.pickupLocation}</strong></span>
+                  <div style={{ background: '#f8faf9', border: '1.5px solid #e2e8f0', padding: '0.75rem', borderRadius: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.825rem' }}>
+                    <div>
+                      <span style={{ color: '#64748b', display: 'block', fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase' }}>Assigned Driver</span>
+                      <strong style={{ color: '#0f2920' }}>{ride.driverName || 'Unassigned'}</strong>
                     </div>
-
-                    <div className="meta-item">
-                      <MapPin size={14} color="#ef4444" />
-                      <span>Destination: <strong style={{ color: '#fff' }}>{ride.destination}</strong></span>
-                    </div>
-
-                    <div style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.2)', borderRadius: 'var(--radius-sm)', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      <div className="meta-item">
-                        <UserCheck size={14} color="#6366f1" />
-                        <span>Driver: <strong style={{ color: '#fff' }}>{ride.driverName}</strong> ({ride.driverPhone})</span>
-                      </div>
-                      <div className="meta-item">
-                        <Car size={14} color="#06b6d4" />
-                        <span>Vehicle: <strong style={{ color: 'var(--accent-cyan)' }}>{ride.vehicleRegistration}</strong> — {ride.vehicleMakeModel} ({ride.vehicleType})</span>
-                      </div>
+                    <div>
+                      <span style={{ color: '#64748b', display: 'block', fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase' }}>Assigned Vehicle</span>
+                      <strong style={{ color: '#2563eb' }}>{ride.vehicleRegistration || 'Unassigned'}</strong>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.85rem' }}>
-                    <button onClick={() => setViewModalRide(ride)} className="btn btn-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}>
-                      <Eye size={14} />
-                      Details
-                    </button>
-
-                    <button onClick={() => handleOpenReplaceModal(ride)} className="btn btn-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}>
-                      <Edit3 size={14} />
-                      Replace
-                    </button>
-
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1.5px solid #f1f5f9', paddingTop: '0.85rem' }}>
                     <button
+                      type="button"
+                      onClick={() => setViewModalRide(ride)}
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        background: '#ffffff',
+                        border: '1.5px solid #e2e8f0',
+                        color: '#0f2920',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                      }}
+                    >
+                      <Eye size={14} />
+                      <span>Details</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenReplaceModal(ride)}
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        background: '#ffffff',
+                        border: '1.5px solid #e2e8f0',
+                        color: '#0f2920',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                      }}
+                    >
+                      <Edit3 size={14} />
+                      <span>Replace</span>
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         setUnassignModalRide(ride);
                         setFormError(null);
                       }}
-                      className="btn btn-secondary"
-                      style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', color: '#f87171' }}
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 800,
+                        background: '#fef2f2',
+                        border: '1px solid #fecaca',
+                        color: '#ef4444',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                      }}
                     >
                       <XCircle size={14} />
-                      Unassign
+                      <span>Unassign</span>
                     </button>
                   </div>
                 </div>
@@ -418,30 +512,52 @@ export const RideAssignmentPage = () => {
       {/* ASSIGN / REPLACE MODAL */}
       {(assignModalRide || replaceModalRide) && (
         <div className="modal-overlay" onClick={() => { setAssignModalRide(null); setReplaceModalRide(null); }}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
-            <div className="modal-header">
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '580px',
+              width: '100%',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '20px',
+              padding: '2rem',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.2)',
+              color: '#0f2920',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h2 className="modal-title">
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f2920', margin: 0 }}>
                   {replaceModalRide ? 'Replace Assignment Resources' : 'Assign Driver & Vehicle'}
                 </h2>
-                <span className="booking-ref" style={{ fontSize: '0.85rem' }}>
+                <span style={{ fontSize: '0.85rem', color: '#2563eb', fontWeight: 700 }}>
                   {(assignModalRide || replaceModalRide).bookingReference} — {(assignModalRide || replaceModalRide).employeeName}
                 </span>
               </div>
-              <button onClick={() => { setAssignModalRide(null); setReplaceModalRide(null); }} className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>
-                Close
+              <button
+                type="button"
+                onClick={() => { setAssignModalRide(null); setReplaceModalRide(null); }}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
+              >
+                <X size={20} />
               </button>
             </div>
 
-            {formError && <div className="alert alert-error">{formError}</div>}
+            {formError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontWeight: 700, fontSize: '0.85rem' }}>
+                ⚠️ {formError}
+              </div>
+            )}
 
             {optionsLoading ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                Checking eligible drivers and vehicles...
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                <RefreshCw size={24} className="spin-animation" style={{ margin: '0 auto 0.5rem', color: '#059669' }} />
+                <p>Checking eligible drivers and vehicles...</p>
               </div>
             ) : (
               <form onSubmit={handleAssignSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                <div style={{ marginBottom: '0.5rem' }}>
+                <div style={{ marginBottom: '0.5rem', borderRadius: '12px', overflow: 'hidden', border: '1.5px solid #e2e8f0' }}>
                   <MapView
                     center={(assignModalRide || replaceModalRide).pickupLongitude ? [(assignModalRide || replaceModalRide).pickupLongitude, (assignModalRide || replaceModalRide).pickupLatitude] : [80.2707, 13.0827]}
                     zoom={12}
@@ -459,19 +575,29 @@ export const RideAssignmentPage = () => {
                   />
                 </div>
 
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
-                  <div>Schedule Date & Time: <strong style={{ color: 'var(--accent-cyan)' }}>{(assignModalRide || replaceModalRide).bookingDate} at {(assignModalRide || replaceModalRide).pickupTime}</strong></div>
-                  <div>Route: <strong>{(assignModalRide || replaceModalRide).pickupLocation}</strong> $\rightarrow$ <strong>{(assignModalRide || replaceModalRide).destination}</strong></div>
+                <div style={{ background: '#f8faf9', border: '1.5px solid #e2e8f0', padding: '0.75rem 1rem', borderRadius: '10px', fontSize: '0.84rem' }}>
+                  <div>Schedule Date & Time: <strong style={{ color: '#059669' }}>{(assignModalRide || replaceModalRide).bookingDate} at {(assignModalRide || replaceModalRide).pickupTime}</strong></div>
+                  <div>Route: <strong style={{ color: '#0f2920' }}>{(assignModalRide || replaceModalRide).pickupLocation}</strong> → <strong style={{ color: '#0f2920' }}>{(assignModalRide || replaceModalRide).destination}</strong></div>
                 </div>
 
                 {/* DRIVER SELECTOR */}
-                <div className="form-group">
-                  <label className="form-label">Select Eligible Driver *</label>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Select Eligible Driver *</label>
                   <select
-                    className="form-control"
                     value={selectedDriverId}
                     onChange={(e) => setSelectedDriverId(e.target.value)}
                     required
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: '#ffffff',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '8px',
+                      color: '#0f172a',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      outline: 'none',
+                    }}
                   >
                     <option value="">-- Choose Active Driver --</option>
                     {assignmentOptions.eligibleDrivers.map((d) => (
@@ -481,20 +607,30 @@ export const RideAssignmentPage = () => {
                     ))}
                   </select>
                   {assignmentOptions.eligibleDrivers.length === 0 && (
-                    <span style={{ fontSize: '0.78rem', color: '#fbbf24', marginTop: '0.3rem', display: 'block' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#d97706', marginTop: '0.3rem', display: 'block', fontWeight: 700 }}>
                       ⚠️ No available drivers without scheduling conflict found for this time block.
                     </span>
                   )}
                 </div>
 
                 {/* VEHICLE SELECTOR */}
-                <div className="form-group">
-                  <label className="form-label">Select Eligible Fleet Vehicle *</label>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Select Eligible Fleet Vehicle *</label>
                   <select
-                    className="form-control"
                     value={selectedVehicleId}
                     onChange={(e) => setSelectedVehicleId(e.target.value)}
                     required
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: '#ffffff',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '8px',
+                      color: '#0f172a',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      outline: 'none',
+                    }}
                   >
                     <option value="">-- Choose Active Vehicle --</option>
                     {assignmentOptions.eligibleVehicles.map((v) => (
@@ -504,17 +640,44 @@ export const RideAssignmentPage = () => {
                     ))}
                   </select>
                   {assignmentOptions.eligibleVehicles.length === 0 && (
-                    <span style={{ fontSize: '0.78rem', color: '#fbbf24', marginTop: '0.3rem', display: 'block' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#d97706', marginTop: '0.3rem', display: 'block', fontWeight: 700 }}>
                       ⚠️ No available vehicles without scheduling conflict found for this time block.
                     </span>
                   )}
                 </div>
 
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                  <button type="button" onClick={() => { setAssignModalRide(null); setReplaceModalRide(null); }} className="btn btn-secondary" style={{ flex: 1 }}>
+                  <button
+                    type="button"
+                    onClick={() => { setAssignModalRide(null); setReplaceModalRide(null); }}
+                    style={{
+                      flex: 1,
+                      padding: '0.65rem',
+                      background: '#ffffff',
+                      border: '1.5px solid #e2e8f0',
+                      color: '#64748b',
+                      fontWeight: 700,
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                    }}
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={formLoading}>
+                  <button
+                    type="submit"
+                    style={{
+                      flex: 1,
+                      padding: '0.65rem',
+                      background: 'linear-gradient(180deg, #184738 0%, #103327 100%)',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 15px rgba(19, 56, 44, 0.25)',
+                    }}
+                    disabled={formLoading}
+                  >
                     {formLoading ? 'Saving...' : 'Confirm Assignment'}
                   </button>
                 </div>
@@ -527,26 +690,73 @@ export const RideAssignmentPage = () => {
       {/* UNASSIGN MODAL */}
       {unassignModalRide && (
         <div className="modal-overlay" onClick={() => setUnassignModalRide(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">Unassign Resources</h2>
-              <button onClick={() => setUnassignModalRide(null)} className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>
-                Close
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '480px',
+              width: '100%',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '20px',
+              padding: '2rem',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.2)',
+              color: '#0f2920',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ef4444', margin: 0 }}>Unassign Resources</h2>
+              <button
+                type="button"
+                onClick={() => setUnassignModalRide(null)}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
+              >
+                <X size={20} />
               </button>
             </div>
 
-            {formError && <div className="alert alert-error">{formError}</div>}
+            {formError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontWeight: 700, fontSize: '0.85rem' }}>
+                ⚠️ {formError}
+              </div>
+            )}
 
             <form onSubmit={handleUnassignSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-                Are you sure you want to unassign driver <strong style={{ color: '#fff' }}>{unassignModalRide.driverName}</strong> and vehicle <strong style={{ color: '#fff' }}>{unassignModalRide.vehicleRegistration}</strong> from ride <strong style={{ color: '#fff' }}>{unassignModalRide.bookingReference}</strong>?
+              <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                Are you sure you want to unassign driver <strong style={{ color: '#0f2920' }}>{unassignModalRide.driverName}</strong> and vehicle <strong style={{ color: '#2563eb' }}>{unassignModalRide.vehicleRegistration}</strong> from ride <strong style={{ color: '#0f2920' }}>{unassignModalRide.bookingReference}</strong>?
               </p>
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setUnassignModalRide(null)} className="btn btn-secondary" style={{ flex: 1 }}>
+                <button
+                  type="button"
+                  onClick={() => setUnassignModalRide(null)}
+                  style={{
+                    flex: 1,
+                    padding: '0.65rem',
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    color: '#64748b',
+                    fontWeight: 700,
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                  }}
+                >
                   Go Back
                 </button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1, background: '#ef4444', borderColor: '#ef4444' }} disabled={formLoading}>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 1,
+                    padding: '0.65rem',
+                    background: '#ef4444',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                  }}
+                  disabled={formLoading}
+                >
                   {formLoading ? 'Unassigning...' : 'Confirm Unassign'}
                 </button>
               </div>
@@ -558,33 +768,50 @@ export const RideAssignmentPage = () => {
       {/* VIEW DETAILS MODAL */}
       {viewModalRide && (
         <div className="modal-overlay" onClick={() => setViewModalRide(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '20px',
+              padding: '2rem',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.2)',
+              color: '#0f2920',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h2 className="modal-title">{viewModalRide.bookingReference}</h2>
-                <span className="booking-ref" style={{ fontSize: '0.85rem' }}>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f2920', margin: 0 }}>{viewModalRide.bookingReference}</h2>
+                <span style={{ fontSize: '0.85rem', color: '#2563eb', fontWeight: 700 }}>
                   Employee: {viewModalRide.employeeName} ({viewModalRide.employeeEmail})
                 </span>
               </div>
-              <button onClick={() => setViewModalRide(null)} className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>
-                Close
+              <button
+                type="button"
+                onClick={() => setViewModalRide(null)}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
+              >
+                <X size={20} />
               </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', fontSize: '0.88rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Status:</span>
+                <span style={{ color: '#64748b', fontWeight: 700 }}>Status:</span>
                 <StatusBadge status={viewModalRide.status} />
               </div>
 
-              <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-sm)', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <div style={{ background: '#f8faf9', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Assigned Driver</span>
-                  <strong style={{ color: '#fff' }}>{viewModalRide.driverName || 'None'}</strong> ({viewModalRide.driverPhone || 'N/A'})
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Assigned Driver</span>
+                  <strong style={{ color: '#0f2920' }}>{viewModalRide.driverName || 'None'}</strong> ({viewModalRide.driverPhone || 'N/A'})
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', display: 'block' }}>Assigned Vehicle</span>
-                  <strong style={{ color: 'var(--accent-cyan)' }}>{viewModalRide.vehicleRegistration || 'None'}</strong> — {viewModalRide.vehicleMakeModel}
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Assigned Vehicle</span>
+                  <strong style={{ color: '#2563eb' }}>{viewModalRide.vehicleRegistration || 'None'}</strong> — {viewModalRide.vehicleMakeModel}
                 </div>
               </div>
             </div>
@@ -594,3 +821,5 @@ export const RideAssignmentPage = () => {
     </div>
   );
 };
+
+export default RideAssignmentPage;
