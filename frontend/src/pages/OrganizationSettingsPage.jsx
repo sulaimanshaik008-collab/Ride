@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Building, Settings, CheckCircle2, AlertCircle, ArrowLeft, RefreshCw, Globe, Phone, Mail, MapPin } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { organizationService } from '../services/organizationService';
 
@@ -57,106 +58,201 @@ export default function OrganizationSettingsPage() {
 
   if (loading) {
     return (
-      <div className="container" style={{ padding: '3rem 0', textAlign: 'center' }}>
-        <div className="spinner" style={{ margin: '0 auto 1rem' }}></div>
-        <p style={{ color: 'var(--text-muted)' }}>Loading Organization Settings...</p>
+      <div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>
+        <RefreshCw size={32} className="spin-animation" style={{ margin: '0 auto 1rem', color: '#059669' }} />
+        <p style={{ color: '#64748b', fontWeight: 600 }}>Loading Organization Settings...</p>
       </div>
     );
   }
 
   return (
     <div className="container" style={{ padding: '2rem 0', maxWidth: '800px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>Organization Settings</h1>
-          <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
+          <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0f2920', margin: 0, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <Settings size={28} color="#059669" />
+            <span>Organization Settings</span>
+          </h1>
+          <p style={{ color: '#64748b', margin: '0.35rem 0 0', fontSize: '0.9rem', fontWeight: 500 }}>
             Manage corporate profile, headquarters address, and operational timezone
           </p>
         </div>
-        <Link to="/admin" className="btn btn-secondary">
-          ← Back to Admin Center
+        <Link
+          to="/admin"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: '#ffffff',
+            border: '1.5px solid #e2e8f0',
+            color: '#0f2920',
+            padding: '0.65rem 1.25rem',
+            borderRadius: '10px',
+            fontWeight: 700,
+            fontSize: '0.875rem',
+            textDecoration: 'none',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          <ArrowLeft size={16} />
+          <span>Back to Admin Center</span>
         </Link>
       </div>
 
       {message.text && (
-        <div className="card" style={{
-          marginBottom: '1.5rem',
-          borderColor: message.type === 'success' ? 'var(--success)' : 'var(--danger)',
-          background: message.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'
-        }}>
-          <p style={{ color: message.type === 'success' ? 'var(--success)' : 'var(--danger)', margin: 0 }}>
-            {message.type === 'success' ? '✓' : '⚠️'} {message.text}
-          </p>
+        <div
+          style={{
+            marginBottom: '1.5rem',
+            padding: '1rem 1.25rem',
+            borderRadius: '12px',
+            border: `1.5px solid ${message.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
+            background: message.type === 'success' ? '#ecfdf5' : '#fef2f2',
+            color: message.type === 'success' ? '#059669' : '#ef4444',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          <span>{message.text}</span>
         </div>
       )}
 
-      <div className="card" style={{ padding: '2rem' }}>
+      <div
+        style={{
+          background: '#ffffff',
+          border: '1.5px solid #e2e8f0',
+          borderRadius: '20px',
+          padding: '2rem',
+          boxShadow: '0 4px 25px rgba(0, 0, 0, 0.04)',
+        }}
+      >
         <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
-            <div className="form-group">
-              <label className="form-label">Organization Name *</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Organization Name *</label>
               <input
                 type="text"
-                className="form-control"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: '#ffffff',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: '8px',
+                  color: '#0f172a',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                }}
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Organization Code (Immutable)</label>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Organization Code (Immutable)</label>
               <input
                 type="text"
-                className="form-control"
                 value={organization?.organizationCode || ''}
                 disabled
-                style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: '#f1f5f9',
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: '8px',
+                  color: '#64748b',
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  cursor: 'not-allowed',
+                }}
               />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
-            <div className="form-group">
-              <label className="form-label">Contact Email</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Contact Email</label>
               <input
                 type="email"
-                className="form-control"
                 value={formData.contactEmail}
                 onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
                 placeholder="transport@company.com"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: '#ffffff',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: '8px',
+                  color: '#0f172a',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                }}
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Contact Phone</label>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Contact Phone</label>
               <input
                 type="tel"
-                className="form-control"
                 value={formData.contactPhone}
                 onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
                 placeholder="+91 98765 43210"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: '#ffffff',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: '8px',
+                  color: '#0f172a',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                }}
               />
             </div>
           </div>
 
-          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-            <label className="form-label">Headquarters / Primary Office Address</label>
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Headquarters / Primary Office Address</label>
             <input
               type="text"
-              className="form-control"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               placeholder="e.g. 100 Technology Plaza, Suite 400, Austin, TX"
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                background: '#ffffff',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '8px',
+                color: '#0f172a',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                outline: 'none',
+              }}
             />
           </div>
 
-          <div className="form-group" style={{ marginBottom: '2rem' }}>
-            <label className="form-label">Operating Timezone</label>
+          <div style={{ marginBottom: '2rem' }}>
+            <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>Operating Timezone</label>
             <select
-              className="form-control"
               value={formData.timezone}
               onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                background: '#ffffff',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '8px',
+                color: '#0f172a',
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                outline: 'none',
+              }}
             >
               <option value="UTC">UTC (Universal Time)</option>
               <option value="America/New_York">America/New_York (Eastern Time)</option>
@@ -170,7 +266,21 @@ export default function OrganizationSettingsPage() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                padding: '0.75rem 1.75rem',
+                borderRadius: '10px',
+                background: 'linear-gradient(180deg, #184738 0%, #103327 100%)',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 15px rgba(19, 56, 44, 0.25)',
+              }}
+            >
               {saving ? 'Saving Changes...' : 'Save Organization Profile'}
             </button>
           </div>
