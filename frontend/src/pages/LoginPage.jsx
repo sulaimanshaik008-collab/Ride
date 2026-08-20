@@ -1,80 +1,165 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Sun,
-  Moon,
-  HelpCircle,
-  Globe,
-  PhoneCall,
+  ArrowLeft,
+  User,
   Mail,
-  X
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  HelpCircle,
+  X,
+  PhoneCall,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { BrandLogo } from '../components/auth/BrandLogo';
-import { FloatingBackground } from '../components/auth/FloatingBackground';
-import { AuthTabs } from '../components/auth/AuthTabs';
-import { LoginForm } from '../components/auth/LoginForm';
-import { SignupForm } from '../components/auth/SignupForm';
-import { SocialAuthButtons } from '../components/auth/SocialAuthButtons';
-import { GuestAccessButton } from '../components/auth/GuestAccessButton';
 import { ForgotPasswordModal } from '../components/auth/ForgotPasswordModal';
+import '../styles/versoLogin.css';
+
+const ROLE_DEMO_ACCOUNTS = [
+  {
+    id: 'EMPLOYEE',
+    label: 'Employee',
+    email: 'eren00987@gmail.com',
+    password: 'password123',
+    role: 'EMPLOYEE',
+  },
+  {
+    id: 'DRIVER',
+    label: 'Driver',
+    email: 'driver@company.com',
+    password: 'password123',
+    role: 'DRIVER',
+  },
+  {
+    id: 'TRANSPORT_MANAGER',
+    label: 'Manager',
+    email: 'manager@company.com',
+    password: 'password123',
+    role: 'TRANSPORT_MANAGER',
+  },
+  {
+    id: 'CORPORATE_ADMIN',
+    label: 'Admin',
+    email: 'admin@company.com',
+    password: 'password123',
+    role: 'CORPORATE_ADMIN',
+  },
+];
+
+const ROLE_CONTENT_MAP = {
+  EMPLOYEE: {
+    login: {
+      chip: 'EMPLOYEE PORTAL',
+      title: 'Welcome back.',
+      desc: 'Your corporate rides, scheduled pickups, and commute history are right where you left them.',
+    },
+    signup: {
+      chip: 'EMPLOYEE ACCESS',
+      title: 'Ride in comfort.',
+      desc: 'Effortless corporate ride booking, real-time vehicle tracking, and hassle-free daily commutes.',
+    },
+  },
+  DRIVER: {
+    login: {
+      chip: 'DRIVER PARTNER DESK',
+      title: 'Ready to drive?',
+      desc: 'View assigned trips, accept employee rides, navigate routes, and track daily payouts.',
+    },
+    signup: {
+      chip: 'DRIVER ONBOARDING',
+      title: 'Join our fleet.',
+      desc: 'Drive with top corporate clients, enjoy verified passengers, and guaranteed ride schedules.',
+    },
+  },
+  TRANSPORT_MANAGER: {
+    login: {
+      chip: 'FLEET CONTROL CENTER',
+      title: 'Operations Desk.',
+      desc: 'Monitor active corporate trips, approve employee requests, and optimize driver & vehicle allocation.',
+    },
+    signup: {
+      chip: 'MANAGER ACCESS',
+      title: 'Streamline mobility.',
+      desc: 'Centralized corporate transport coordination, real-time dispatch, and intelligent fleet management.',
+    },
+  },
+  CORPORATE_ADMIN: {
+    login: {
+      chip: 'ADMINISTRATION CONSOLE',
+      title: 'Corporate Admin.',
+      desc: 'Manage corporate organizations, billing budgets, security policies, and enterprise analytics.',
+    },
+    signup: {
+      chip: 'ENTERPRISE ADMIN',
+      title: 'Empower enterprise.',
+      desc: 'Total control over employee travel policies, department quotas, and corporate vehicle fleet oversight.',
+    },
+  },
+};
 
 export default function LoginPage() {
-  const {
-    login,
-    signup,
-    loginWithGoogle,
-    loginAsGuest,
-    theme,
-    toggleTheme,
-  } = useAuth();
-
+  const { login, signup } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Determine initial mode from URL (e.g. /signup or /login)
+  // Mode: 'login' | 'signup'
   const isSignupRoute = location.pathname === '/signup';
-  const [activeTab, setActiveTab] = useState(isSignupRoute ? 'signup' : 'login');
-  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
-  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
-  const [currentLang, setCurrentLang] = useState('EN');
+  const [mode, setMode] = useState(isSignupRoute ? 'signup' : 'login');
+
+  // Selected quick role
+  const [selectedRole, setSelectedRole] = useState('EMPLOYEE');
+
+  // Sign In Form States
+  const [loginEmail, setLoginEmail] = useState('eren00987@gmail.com');
+  const [loginPassword, setLoginPassword] = useState('password123');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [keepSignedIn, setKeepSignedIn] = useState(true);
+
+  // Sign Up Form States
+  const [signupFullName, setSignupFullName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupRole, setSignupRole] = useState('EMPLOYEE');
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+
+  // Status & Modal States
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [registeredUser, setRegisteredUser] = useState(null);
 
-  // Subtle Mouse Parallax state (capped at 4-8px)
-  const [parallaxOffset, setParallaxOffset] = useState({ x: 0, y: 0 });
-  const cardContainerRef = useRef(null);
+  // Current active role content
+  const activeRole = mode === 'login' ? selectedRole : signupRole;
+  const roleContent = ROLE_CONTENT_MAP[activeRole] || ROLE_CONTENT_MAP.EMPLOYEE;
 
-  // Sync mode if route changes
+  // Sync mode if URL changes
   useEffect(() => {
     if (location.pathname === '/signup') {
-      setActiveTab('signup');
+      setMode('signup');
     } else if (location.pathname === '/login') {
-      setActiveTab('login');
+      setMode('login');
     }
   }, [location.pathname]);
 
-  const handleMouseMove = (e) => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return;
-    }
-    const { innerWidth, innerHeight } = window;
-    const x = (e.clientX / innerWidth - 0.5) * 12; // -6px to +6px
-    const y = (e.clientY / innerHeight - 0.5) * 12;
-    setParallaxOffset({ x: Math.round(x), y: Math.round(y) });
-  };
-
-  const handleMouseLeave = () => {
-    setParallaxOffset({ x: 0, y: 0 });
+  const handleRoleSelect = (roleItem) => {
+    setSelectedRole(roleItem.id);
+    setLoginEmail(roleItem.email);
+    setLoginPassword(roleItem.password);
+    setApiError('');
   };
 
   const redirectByRole = (role) => {
     if (role === 'EMPLOYEE') {
       navigate('/book-ride');
     } else if (role === 'DRIVER') {
-      navigate('/driver-trips');
+      navigate('/driver/dashboard');
     } else if (role === 'TRANSPORT_MANAGER') {
-      navigate('/scheduling');
+      navigate('/transport-manager/dashboard');
     } else if (role === 'CORPORATE_ADMIN' || role === 'SYSTEM_ADMIN') {
       navigate('/admin');
     } else {
@@ -82,292 +167,373 @@ export default function LoginPage() {
     }
   };
 
-  const handleLoginSubmit = async ({ identifier, password }) => {
+  const handleLoginSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      setApiError('Please enter your email and password');
+      return;
+    }
+
     try {
       setLoading(true);
       setApiError('');
-      const user = await login(identifier, password);
-      redirectByRole(user.role);
+      const user = await login(loginEmail.trim(), loginPassword, selectedRole);
+      const targetRole = user?.role || selectedRole || 'EMPLOYEE';
+      redirectByRole(targetRole);
     } catch (err) {
-      setApiError(err?.message || 'Email or password is incorrect. Please verify and try again.');
+      setApiError(err?.message || 'Invalid username or password. Please verify and try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSignupSubmit = async (formData) => {
+  const handleSignupSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!signupFullName.trim() || !signupEmail.trim() || !signupPassword.trim()) {
+      setApiError('Please fill in all required fields');
+      return;
+    }
+    if (signupPassword.length < 6) {
+      setApiError('Password must be at least 6 characters');
+      return;
+    }
+
     try {
       setLoading(true);
       setApiError('');
+      const formData = {
+        fullName: signupFullName.trim(),
+        email: signupEmail.trim(),
+        password: signupPassword,
+        role: signupRole,
+        organizationName: 'Acme Corporate Mobility',
+      };
       const user = await signup(formData);
-      redirectByRole(user.role);
+      const targetRole = user?.role || signupRole;
+      setRegisteredUser({ ...user, role: targetRole });
+      setTimeout(() => {
+        redirectByRole(targetRole);
+      }, 1500);
     } catch (err) {
-      setApiError(err?.message || 'Unable to complete registration. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      setLoading(true);
-      setApiError('');
-      const user = await loginWithGoogle();
-      redirectByRole(user.role);
-    } catch (err) {
-      setApiError(err?.message || 'Google authentication connection failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGuestLogin = async () => {
-    try {
-      setLoading(true);
-      setApiError('');
-      const user = await loginAsGuest();
-      redirectByRole(user.role);
-    } catch (err) {
-      setApiError(err?.message || 'Guest access failed.');
+      setApiError(err?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      className="auth-portal-page"
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        minHeight: '100vh',
-        position: 'relative',
-        background: 'var(--bg-dark, #000000)',
-        color: 'var(--text-main, #ffffff)',
-        overflowX: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      {/* Dynamic Anti-Gravity Particles & Ambient Glow */}
-      <FloatingBackground />
-
-      {/* Header */}
-      <header
-        className="auth-header"
-        style={{
-          position: 'relative',
-          zIndex: 20,
-          padding: '1.25rem 2.5rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '1px solid var(--border-glass, rgba(255, 255, 255, 0.08))',
-          background: 'var(--header-bg, rgba(5, 5, 5, 0.75))',
-          backdropFilter: 'blur(20px)',
-        }}
-      >
-        {/* Left: Brand Logo & Name */}
-        <Link to="/" style={{ textDecoration: 'none' }}>
-          <BrandLogo size="normal" showSubtitle={true} />
-        </Link>
-
-        {/* Right: Controls (Help, Theme, Language) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Support / Help link */}
-          <button
-            type="button"
-            onClick={() => setIsHelpModalOpen(true)}
-            aria-label="Open support and help dialog"
-            className="header-action-btn"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.45rem 0.85rem',
-              borderRadius: '8px',
-              background: 'var(--control-bg, #141414)',
-              border: '1px solid var(--border-glass, rgba(255, 255, 255, 0.12))',
-              color: 'var(--text-muted, #9ca3af)',
-              fontSize: '0.825rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              minHeight: '40px',
-              transition: 'all 0.15s',
-            }}
-          >
-            <HelpCircle size={15} />
-            <span className="hide-on-mobile">Help</span>
-          </button>
-
-          {/* Language Selector */}
+    <div className="verso-auth-wrapper">
+      {/* Top Header Bar */}
+      <div className="verso-top-bar">
+        <div className="verso-brand-header" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', pointerEvents: 'auto' }}>
           <div
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              padding: '0.45rem 0.65rem',
-              borderRadius: '8px',
-              background: 'var(--control-bg, #141414)',
-              border: '1px solid var(--border-glass, rgba(255, 255, 255, 0.12))',
-              color: 'var(--text-muted, #9ca3af)',
-              fontSize: '0.825rem',
-              fontWeight: 600,
-              minHeight: '40px',
-            }}
-          >
-            <Globe size={14} />
-            <select
-              value={currentLang}
-              onChange={(e) => setCurrentLang(e.target.value)}
-              aria-label="Select interface language"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'inherit',
-                fontSize: '0.825rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              <option value="EN" style={{ background: '#111', color: '#fff' }}>EN</option>
-              <option value="ES" style={{ background: '#111', color: '#fff' }}>ES</option>
-              <option value="FR" style={{ background: '#111', color: '#fff' }}>FR</option>
-              <option value="DE" style={{ background: '#111', color: '#fff' }}>DE</option>
-            </select>
-          </div>
-
-          {/* Theme Toggle (Light / Dark) */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            className="header-action-btn"
-            style={{
-              display: 'inline-flex',
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #059669 0%, #103327 100%)',
+              display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '40px',
-              height: '40px',
-              borderRadius: '8px',
-              background: 'var(--control-bg, #141414)',
-              border: '1px solid var(--border-glass, rgba(255, 255, 255, 0.12))',
-              color: 'var(--text-main, #ffffff)',
-              cursor: 'pointer',
-              transition: 'all 0.15s',
+              boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)',
+              color: '#ffffff',
             }}
           >
-            {theme === 'dark' ? <Sun size={17} color="#f59e0b" /> : <Moon size={17} color="#6366f1" />}
-          </button>
+            <ShieldCheck size={22} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f2920', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+              RideFlow
+            </span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#059669', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              Corporate Mobility
+            </span>
+          </div>
         </div>
-      </header>
 
-      {/* Centered Main Portal Setup */}
-      <main
-        className="auth-main"
-        style={{
-          position: 'relative',
-          zIndex: 10,
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '2.5rem 1.5rem',
-          width: '100%',
-        }}
-      >
-        <div
-          ref={cardContainerRef}
-          className="auth-card-container"
-          style={{
-            maxWidth: '480px',
-            width: '100%',
-            margin: '0 auto',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
+        <button
+          type="button"
+          onClick={() => setIsHelpModalOpen(true)}
+          className="verso-back-btn"
+          aria-label="Help and Support"
         >
-          {/* Centered Card */}
-          <div
-            className="auth-card"
-            style={{
-              width: '100%',
-              background: 'var(--bg-card, #111418)',
-              border: '1px solid var(--border-glass, rgba(255, 255, 255, 0.15))',
-              borderTop: '1px solid rgba(255, 255, 255, 0.35)',
-              borderRadius: '24px',
-              padding: '2.5rem',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.15) inset',
-              position: 'relative',
-              transform: `translate3d(${parallaxOffset.x}px, ${parallaxOffset.y}px, 0)`,
-              transition: 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1)',
-              animation: 'gentleLevitateCard 5s ease-in-out infinite alternate',
-            }}
-          >
-            {/* Centered Brand Icon & Header on Card */}
-            <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-              <BrandLogo size="large" showSubtitle={true} />
+          <HelpCircle size={18} />
+        </button>
+      </div>
+
+      {/* Main 3D Sliding Blade Auth Card */}
+      <div className="verso-card-outer" data-mode={mode}>
+        {/* Form halves */}
+        <div className="verso-forms-container">
+          {/* =================================================================
+              LEFT HALF: SIGN IN FORM
+              ================================================================= */}
+          <div className="verso-form-panel signin-side">
+            <div className="verso-form-inner">
+              <h2>Sign in</h2>
+
+              {/* Quick Demo Role Selector Pills */}
+              <div className="verso-demo-roles">
+                <span className="verso-demo-roles-label">Select Role / Demo Account</span>
+                <div className="verso-role-pills">
+                  {ROLE_DEMO_ACCOUNTS.map((roleItem) => (
+                    <button
+                      key={roleItem.id}
+                      type="button"
+                      onClick={() => handleRoleSelect(roleItem)}
+                      className={`verso-role-pill ${selectedRole === roleItem.id ? 'active' : ''}`}
+                    >
+                      {roleItem.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {apiError && mode === 'login' && (
+                <div style={{ padding: '0.6rem 0.85rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#b91c1c', fontSize: '0.8rem', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                  <span>{apiError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleLoginSubmit}>
+                <div className="verso-input-group">
+                  <label className="verso-input-label">Username or email</label>
+                  <div className="verso-input-field-wrap">
+                    <input
+                      type="text"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder="name@company.com"
+                      required
+                      className="verso-input-field"
+                    />
+                    <User size={16} className="verso-input-icon" />
+                  </div>
+                </div>
+
+                <div className="verso-input-group">
+                  <label className="verso-input-label">Password</label>
+                  <div className="verso-input-field-wrap">
+                    <input
+                      type={showLoginPassword ? 'text' : 'password'}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="Enter password"
+                      required
+                      className="verso-input-field"
+                    />
+                    <div
+                      className="verso-input-icon clickable"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    >
+                      {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="verso-form-row">
+                  <label className="verso-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={keepSignedIn}
+                      onChange={(e) => setKeepSignedIn(e.target.checked)}
+                    />
+                    <span>Keep me signed in</span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotModalOpen(true)}
+                    className="verso-forgot-link"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="verso-primary-btn"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 size={16} className="spin-animation" />
+                      <span>Signing in...</span>
+                    </>
+                  ) : (
+                    <span>Sign in</span>
+                  )}
+                </button>
+              </form>
+
+              <div className="verso-switch-footer">
+                New to VERSO?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('signup');
+                    setApiError('');
+                  }}
+                  className="verso-switch-btn"
+                >
+                  Create an account
+                </button>
+              </div>
             </div>
+          </div>
 
-            {/* Segmented Tab Navigation: [ Sign Up ] [ Log In ] */}
-            <AuthTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          {/* =================================================================
+              RIGHT HALF: CREATE ACCOUNT FORM
+              ================================================================= */}
+          <div className="verso-form-panel signup-side">
+            <div className="verso-form-inner">
+              <h2>Create account</h2>
 
-            {/* Tab Panels */}
-            {activeTab === 'login' ? (
-              <LoginForm
-                onSubmit={handleLoginSubmit}
-                onForgotPasswordClick={() => setIsForgotModalOpen(true)}
-                loading={loading}
-                apiError={apiError}
-              />
-            ) : (
-              <SignupForm
-                onSubmit={handleSignupSubmit}
-                loading={loading}
-                apiError={apiError}
-              />
-            )}
+              {apiError && mode === 'signup' && (
+                <div style={{ padding: '0.6rem 0.85rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#b91c1c', fontSize: '0.8rem', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                  <span>{apiError}</span>
+                </div>
+              )}
 
-            {/* Social Divider */}
-            <div
-              className="auth-divider"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                margin: '1.75rem 0 1.25rem',
-                gap: '0.75rem',
-              }}
-            >
-              <div style={{ flex: 1, height: '1px', background: 'var(--border-glass, rgba(255, 255, 255, 0.1))' }} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim, #71717a)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                OR
-              </span>
-              <div style={{ flex: 1, height: '1px', background: 'var(--border-glass, rgba(255, 255, 255, 0.1))' }} />
-            </div>
+              {registeredUser ? (
+                <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+                  <CheckCircle2 size={42} color="#10b981" style={{ margin: '0 auto 0.75rem' }} />
+                  <h3 style={{ color: '#0f2920', margin: '0 0 0.4rem', fontSize: '1.2rem', fontWeight: 800 }}>
+                    Account Created!
+                  </h3>
+                  <p style={{ color: '#64748b', fontSize: '0.85rem' }}>
+                    Redirecting to your dashboard...
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handleSignupSubmit}>
+                  <div className="verso-input-group">
+                    <label className="verso-input-label">Full name</label>
+                    <div className="verso-input-field-wrap">
+                      <input
+                        type="text"
+                        value={signupFullName}
+                        onChange={(e) => setSignupFullName(e.target.value)}
+                        placeholder="Jane Doe"
+                        required
+                        className="verso-input-field"
+                      />
+                      <User size={16} className="verso-input-icon" />
+                    </div>
+                  </div>
 
-            {/* Social Auth Buttons */}
-            <SocialAuthButtons onGoogleClick={handleGoogleLogin} disabled={loading} />
+                  <div className="verso-input-group">
+                    <label className="verso-input-label">Email address</label>
+                    <div className="verso-input-field-wrap">
+                      <input
+                        type="email"
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
+                        placeholder="name@company.com"
+                        required
+                        className="verso-input-field"
+                      />
+                      <Mail size={16} className="verso-input-icon" />
+                    </div>
+                  </div>
 
-            {/* Guest Access Option */}
-            <GuestAccessButton onGuestLogin={handleGuestLogin} disabled={loading} />
+                  <div className="verso-input-group">
+                    <label className="verso-input-label">Password</label>
+                    <div className="verso-input-field-wrap">
+                      <input
+                        type={showSignupPassword ? 'text' : 'password'}
+                        value={signupPassword}
+                        onChange={(e) => setSignupPassword(e.target.value)}
+                        placeholder="Create password"
+                        required
+                        className="verso-input-field"
+                      />
+                      <div
+                        className="verso-input-icon clickable"
+                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                      >
+                        {showSignupPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </div>
+                    </div>
+                    <span className="verso-input-helper">
+                      Use 8 characters or more with letters &amp; numbers
+                    </span>
+                  </div>
 
-            {/* Terms & Privacy Notice */}
-            <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-dim, #71717a)', lineHeight: 1.5 }}>
-              By continuing, you agree to our{' '}
-              <a href="#terms" style={{ color: 'var(--text-muted, #9ca3af)', textDecoration: 'underline' }}>
-                Terms of Service
-              </a>{' '}
-              and{' '}
-              <a href="#privacy" style={{ color: 'var(--text-muted, #9ca3af)', textDecoration: 'underline' }}>
-                Privacy Policy
-              </a>
-              .
+                  {/* Role Selector */}
+                  <div className="verso-input-group" style={{ marginBottom: '0.75rem' }}>
+                    <label className="verso-input-label">Account Role</label>
+                    <div className="verso-role-pills">
+                      {ROLE_DEMO_ACCOUNTS.map((roleItem) => (
+                        <button
+                          key={roleItem.id}
+                          type="button"
+                          onClick={() => setSignupRole(roleItem.id)}
+                          className={`verso-role-pill ${signupRole === roleItem.id ? 'active' : ''}`}
+                        >
+                          {roleItem.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="verso-primary-btn"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 size={16} className="spin-animation" />
+                        <span>Creating account...</span>
+                      </>
+                    ) : (
+                      <span>Create account</span>
+                    )}
+                  </button>
+                </form>
+              )}
+
+              <div className="verso-switch-footer">
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('login');
+                    setApiError('');
+                  }}
+                  className="verso-switch-btn"
+                >
+                  Sign in
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </main>
+
+        {/* =================================================================
+            THE 3D SLIDING SKEWED FOREST GREEN BLADE ("auth__band")
+            ================================================================= */}
+        <div className="verso-blade-band">
+          <div className="verso-blade-inner">
+            {/* Banner when in LOGIN mode (Blade is on the right) */}
+            <div className="verso-banner-content verso-banner-login">
+              <span className="brand-chip">{roleContent.login.chip}</span>
+              <h3>{roleContent.login.title}</h3>
+              <p>{roleContent.login.desc}</p>
+            </div>
+
+            {/* Banner when in SIGNUP mode (Blade is on the left) */}
+            <div className="verso-banner-content verso-banner-signup">
+              <span className="brand-chip">{roleContent.signup.chip}</span>
+              <h3>{roleContent.signup.title}</h3>
+              <p>{roleContent.signup.desc}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Forgot Password Modal */}
       <ForgotPasswordModal
@@ -375,13 +541,13 @@ export default function LoginPage() {
         onClose={() => setIsForgotModalOpen(false)}
       />
 
-      {/* Help & Support Modal */}
+      {/* Help Modal */}
       {isHelpModalOpen && (
         <div
           className="modal-overlay"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="help-modal-title"
+          onClick={() => setIsHelpModalOpen(false)}
           style={{
             position: 'fixed',
             inset: 0,
@@ -396,58 +562,50 @@ export default function LoginPage() {
         >
           <div
             className="modal-card"
+            onClick={(e) => e.stopPropagation()}
             style={{
               maxWidth: '460px',
               width: '100%',
-              background: 'var(--bg-card, #121417)',
-              border: '1px solid var(--border-glass, rgba(255, 255, 255, 0.15))',
+              background: '#121417',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '16px',
               padding: '2rem',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
+              color: '#ffffff',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <HelpCircle size={20} color="var(--accent-teal, #10b981)" />
-                <h3 id="help-modal-title" style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
-                  RideFlow Corporate Support
-                </h3>
-              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
+                Corporate Support
+              </h3>
               <button
                 type="button"
                 onClick={() => setIsHelpModalOpen(false)}
-                aria-label="Close dialog"
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted, #9ca3af)', cursor: 'pointer', padding: '4px' }}
+                style={{ background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer' }}
               >
                 <X size={20} />
               </button>
             </div>
-
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #9ca3af)', lineHeight: 1.6, marginBottom: '1.25rem' }}>
-              Need assistance with your corporate account or ride assignments? Reach out to our dedicated 24/7 corporate fleet desk.
+            <p style={{ fontSize: '0.875rem', color: '#9ca3af', lineHeight: 1.6, marginBottom: '1.25rem' }}>
+              Need assistance signing in or setting up your account? Contact our corporate platform administrator.
             </p>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.65rem 0.85rem', background: 'rgba(255, 255, 255, 0.04)', borderRadius: '8px', fontSize: '0.85rem' }}>
-                <Mail size={16} color="var(--accent-teal, #10b981)" />
+                <Mail size={16} color="#10b981" />
                 <span>support@rideflow.corporate.internal</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.65rem 0.85rem', background: 'rgba(255, 255, 255, 0.04)', borderRadius: '8px', fontSize: '0.85rem' }}>
-                <PhoneCall size={16} color="var(--accent-teal, #10b981)" />
+                <PhoneCall size={16} color="#10b981" />
                 <span>1-800-RIDE-FLOW (Ext. 402)</span>
               </div>
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={() => setIsHelpModalOpen(false)}
-                className="btn btn-primary"
-                style={{ padding: '0.6rem 1.25rem', fontSize: '0.875rem' }}
-              >
-                Close
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsHelpModalOpen(false)}
+              className="verso-primary-btn"
+              style={{ width: '100%' }}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

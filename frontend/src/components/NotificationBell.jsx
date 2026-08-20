@@ -82,10 +82,12 @@ export const NotificationBell = () => {
   return (
     <div style={{ position: 'relative' }} ref={dropdownRef}>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
+        aria-label="Notifications"
         style={{
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.12)',
+          background: '#ffffff',
+          border: '1.5px solid #e2e8f0',
           borderRadius: '50%',
           width: '38px',
           height: '38px',
@@ -93,12 +95,13 @@ export const NotificationBell = () => {
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          color: '#fff',
+          color: '#0f2920',
           position: 'relative',
-          transition: 'background 0.2s',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+          transition: 'all 0.15s ease',
         }}
       >
-        <Bell size={18} />
+        <Bell size={18} color="#0f2920" />
         {unreadCount > 0 && (
           <span
             style={{
@@ -106,12 +109,13 @@ export const NotificationBell = () => {
               top: '-4px',
               right: '-4px',
               background: '#ef4444',
-              color: '#fff',
+              color: '#ffffff',
               borderRadius: '10px',
               padding: '2px 6px',
-              fontSize: '0.7rem',
-              fontWeight: 800,
-              boxShadow: '0 0 8px rgba(239, 68, 68, 0.6)',
+              fontSize: '0.68rem',
+              fontWeight: 900,
+              boxShadow: '0 2px 6px rgba(239, 68, 68, 0.4)',
+              border: '2px solid #ffffff',
             }}
           >
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -123,13 +127,13 @@ export const NotificationBell = () => {
         <div
           style={{
             position: 'absolute',
-            top: '48px',
+            top: '46px',
             right: 0,
-            width: '340px',
-            background: '#18181b',
-            border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
+            width: '350px',
+            background: '#ffffff',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '16px',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
             zIndex: 1000,
             overflow: 'hidden',
           }}
@@ -139,15 +143,15 @@ export const NotificationBell = () => {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '0.85rem 1rem',
-              borderBottom: '1px solid rgba(255,255,255,0.08)',
-              background: 'rgba(255,255,255,0.02)',
+              padding: '0.9rem 1.1rem',
+              borderBottom: '1.5px solid #f1f5f9',
+              background: '#ffffff',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#fff' }}>Notifications</span>
+              <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#0f2920' }}>Notifications</span>
               {unreadCount > 0 && (
-                <span style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', padding: '1px 6px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 700 }}>
+                <span style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', padding: '1px 6px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800 }}>
                   {unreadCount} new
                 </span>
               )}
@@ -155,33 +159,35 @@ export const NotificationBell = () => {
 
             {unreadCount > 0 && (
               <button
+                type="button"
                 onClick={handleMarkAllAsRead}
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--accent-cyan)',
+                  color: '#059669',
                   fontSize: '0.78rem',
                   cursor: 'pointer',
-                  fontWeight: 600,
+                  fontWeight: 800,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.2rem',
+                  gap: '0.25rem',
                 }}
               >
                 <CheckCheck size={14} />
-                Mark all read
+                <span>Mark all read</span>
               </button>
             )}
           </div>
 
           <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
             {loading ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              <div style={{ padding: '2.5rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>
                 Loading notifications...
               </div>
             ) : notifications.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                No notifications yet.
+              <div style={{ padding: '2.5rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+                <Bell size={28} color="#059669" style={{ margin: '0 auto 0.5rem' }} />
+                <div style={{ fontWeight: 700, color: '#0f2920' }}>No notifications yet</div>
               </div>
             ) : (
               notifications.map((n) => (
@@ -191,27 +197,27 @@ export const NotificationBell = () => {
                     if (!n.isRead) handleMarkAsRead(n.id);
                   }}
                   style={{
-                    padding: '0.85rem 1rem',
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    background: n.isRead ? 'transparent' : 'rgba(99, 102, 241, 0.06)',
+                    padding: '0.85rem 1.1rem',
+                    borderBottom: '1px solid #f1f5f9',
+                    background: n.isRead ? '#ffffff' : '#f0fdf4',
                     cursor: 'pointer',
-                    transition: 'background 0.2s',
+                    transition: 'background 0.15s',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
-                    <span style={{ fontWeight: n.isRead ? 600 : 700, fontSize: '0.85rem', color: n.isRead ? 'var(--text-main)' : '#fff' }}>
+                    <span style={{ fontWeight: n.isRead ? 700 : 900, fontSize: '0.875rem', color: '#0f2920' }}>
                       {n.title}
                     </span>
                     {!n.isRead && (
-                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#6366f1', marginTop: '4px' }} />
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669', marginTop: '4px', flexShrink: 0 }} />
                     )}
                   </div>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0 0 0.4rem 0', lineHeight: 1.35 }}>
+                  <p style={{ fontSize: '0.8rem', color: '#475569', margin: '0 0 0.35rem 0', lineHeight: 1.4, fontWeight: 500 }}>
                     {n.message}
                   </p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.725rem', color: '#64748b' }}>
                     <span>{new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    {n.bookingReference && <span style={{ color: 'var(--accent-cyan)' }}>{n.bookingReference}</span>}
+                    {n.bookingReference && <span style={{ color: '#2563eb', fontWeight: 700 }}>{n.bookingReference}</span>}
                   </div>
                 </div>
               ))
@@ -220,9 +226,9 @@ export const NotificationBell = () => {
 
           <div
             style={{
-              padding: '0.65rem 1rem',
-              borderTop: '1px solid rgba(255,255,255,0.08)',
-              background: 'rgba(255,255,255,0.02)',
+              padding: '0.75rem 1rem',
+              borderTop: '1.5px solid #f1f5f9',
+              background: '#f8faf9',
               textAlign: 'center',
             }}
           >
@@ -230,17 +236,17 @@ export const NotificationBell = () => {
               to="/notifications"
               onClick={() => setIsOpen(false)}
               style={{
-                color: 'var(--accent-cyan)',
-                fontSize: '0.82rem',
-                fontWeight: 600,
+                color: '#059669',
+                fontSize: '0.825rem',
+                fontWeight: 800,
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.3rem',
+                gap: '0.35rem',
               }}
             >
               View All Notifications
-              <ArrowRight size={13} />
+              <ArrowRight size={14} />
             </Link>
           </div>
         </div>

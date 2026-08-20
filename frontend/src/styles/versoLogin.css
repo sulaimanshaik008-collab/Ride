@@ -1,0 +1,490 @@
+/* ==========================================================================
+   VERSO 3D SLIDING BLADE LOGIN & SIGNUP ANIMATION - FULL SCREEN EDGE-TO-EDGE
+   ========================================================================== */
+
+:root {
+  --verso-green-dark: #13382c;
+  --verso-green-mid: #164032;
+  --verso-green-deep: #0d261e;
+  --verso-green-light: #1b4d3e;
+  --verso-accent-emerald: #10b981;
+  --verso-bg-dark: #0a0c0f;
+  --verso-card-bg: #fbfbf9;
+  --verso-text-dark: #141f1a;
+  --verso-text-muted: #6b7770;
+  --verso-border-light: rgba(0, 0, 0, 0.08);
+  --verso-input-bg: #ffffff;
+  --verso-rake: -12deg;
+  --verso-transition-curve: cubic-bezier(0.77, 0, 0.175, 1);
+  --verso-transition-duration: 0.85s;
+}
+
+/* Fullscreen Root Container */
+.verso-auth-wrapper {
+  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
+  max-width: 100vw;
+  position: relative;
+  background: #fbfbf9;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #141f1a;
+}
+
+/* Fixed Floating Header Controls */
+.verso-top-bar {
+  position: fixed;
+  top: 1.5rem;
+  left: 2rem;
+  right: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.verso-back-btn {
+  background: rgba(19, 56, 44, 0.08);
+  border: 1px solid rgba(19, 56, 44, 0.15);
+  color: #13382c;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.verso-back-btn:hover {
+  background: rgba(19, 56, 44, 0.16);
+  transform: scale(1.05);
+}
+
+/* Right-aligned help button on dark blade side */
+.verso-top-bar .verso-back-btn:last-child {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.verso-top-bar .verso-back-btn:last-child:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ==========================================================================
+   FULLSCREEN 3D SLIDING BLADE AUTH CANVAS
+   ========================================================================== */
+
+.verso-card-outer {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  background: #fbfbf9;
+  border-radius: 0;
+  overflow: hidden;
+  z-index: 10;
+  display: flex;
+}
+
+/* Form Container Grid (Two 50% halves: Left = Signin, Right = Signup) */
+.verso-forms-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.verso-form-panel {
+  width: 50%;
+  height: 100vh;
+  padding: 3rem 4.5rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: var(--verso-text-dark);
+  overflow-y: auto;
+}
+
+.verso-form-inner {
+  max-width: 440px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.verso-form-panel h2 {
+  font-size: 2.25rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: #0f2920;
+  margin: 0 0 1rem 0;
+  line-height: 1.15;
+}
+
+/* Quick Role Presets */
+.verso-demo-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
+}
+
+.verso-demo-roles-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.verso-role-pills {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.verso-role-pill {
+  flex: 1;
+  padding: 0.5rem 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.verso-role-pill:hover {
+  border-color: #164032;
+  color: #164032;
+  background: rgba(22, 64, 50, 0.05);
+}
+
+.verso-role-pill.active {
+  border-color: #164032;
+  background: #164032;
+  color: #ffffff;
+}
+
+/* Form input group */
+.verso-input-group {
+  margin-bottom: 1.1rem;
+  position: relative;
+}
+
+.verso-input-label {
+  display: block;
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 0.35rem;
+}
+
+.verso-input-field-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.verso-input-field {
+  width: 100%;
+  padding: 0.85rem 2.6rem 0.85rem 1.1rem;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 0.925rem;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.verso-input-field:focus {
+  border-color: #164032;
+  box-shadow: 0 0 0 3px rgba(22, 64, 50, 0.12);
+}
+
+.verso-input-icon {
+  position: absolute;
+  right: 1rem;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.verso-input-icon.clickable {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.verso-input-icon.clickable:hover {
+  color: #164032;
+}
+
+/* Helper Text */
+.verso-input-helper {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.3rem;
+  display: block;
+}
+
+/* Checkbox & Forgot Password Row */
+.verso-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.4rem 0 1.35rem 0;
+  font-size: 0.85rem;
+}
+
+.verso-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #475569;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}
+
+.verso-checkbox-label input {
+  accent-color: #13382c;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.verso-forgot-link {
+  color: #13382c;
+  text-decoration: underline;
+  font-weight: 600;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.verso-forgot-link:hover {
+  color: #10b981;
+}
+
+/* Primary Action Button */
+.verso-primary-btn {
+  width: 100%;
+  padding: 0.95rem;
+  background: linear-gradient(180deg, #184738 0%, #103327 100%);
+  color: #ffffff;
+  border: 1px solid #1f5643;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(19, 56, 44, 0.35);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.verso-primary-btn:hover {
+  background: linear-gradient(180deg, #1d5643 0%, #133d2f 100%);
+  box-shadow: 0 8px 24px rgba(19, 56, 44, 0.45);
+  transform: translateY(-1px);
+}
+
+.verso-primary-btn:active {
+  transform: translateY(0);
+}
+
+/* Switch Mode Bottom Text */
+.verso-switch-footer {
+  margin-top: 1.25rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.verso-switch-btn {
+  background: none;
+  border: none;
+  color: #13382c;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0 0 0 0.35rem;
+  font-size: 0.875rem;
+}
+
+.verso-switch-btn:hover {
+  color: #10b981;
+}
+
+/* ==========================================================================
+   THE 3D SLIDING SKEWED BLADE ("auth__band") - FULLSCREEN
+   ========================================================================== */
+
+.verso-blade-band {
+  position: absolute;
+  top: -30%;
+  bottom: -30%;
+  width: 58%;
+  background: linear-gradient(145deg, #184738 0%, #0d261e 60%, #091a14 100%);
+  z-index: 5;
+  pointer-events: none;
+  box-shadow: 
+    0 0 70px rgba(0, 0, 0, 0.7),
+    0 0 35px rgba(22, 64, 50, 0.5) inset;
+  transition: transform var(--verso-transition-duration) var(--verso-transition-curve);
+  overflow: hidden;
+}
+
+/* In Login Mode: Blade covers RIGHT side */
+.verso-card-outer[data-mode="login"] .verso-blade-band {
+  transform: translateX(82%) skewX(var(--verso-rake));
+}
+
+/* In Signup Mode: Blade covers LEFT side */
+.verso-card-outer[data-mode="signup"] .verso-blade-band {
+  transform: translateX(-15%) skewX(var(--verso-rake));
+}
+
+/* Highlight edge sheen on the slanted blade */
+.verso-blade-band::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.05) 100%);
+  left: 0;
+}
+
+/* Inner content container inside the blade (un-skews content so text is straight) */
+.verso-blade-inner {
+  position: absolute;
+  top: 30%;
+  bottom: 30%;
+  left: 0;
+  right: 0;
+  transform: skewX(calc(-1 * var(--verso-rake)));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 6rem;
+  box-sizing: border-box;
+}
+
+/* Banner Content Cards */
+.verso-banner-content {
+  color: #ffffff;
+  max-width: 400px;
+  position: absolute;
+  transition: opacity 0.4s ease, transform 0.6s ease;
+  pointer-events: auto;
+}
+
+.verso-banner-content .brand-chip {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #6ee7b7;
+  margin-bottom: 1.5rem;
+}
+
+.verso-banner-content h3 {
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin: 0 0 1.25rem 0;
+  color: #ffffff;
+}
+
+.verso-banner-content p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #a7f3d0;
+  margin: 0;
+  opacity: 0.9;
+}
+
+/* Visibility toggle for banner content */
+.verso-card-outer[data-mode="login"] .verso-banner-login {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.verso-card-outer[data-mode="login"] .verso-banner-signup {
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+}
+
+.verso-card-outer[data-mode="signup"] .verso-banner-login {
+  opacity: 0;
+  transform: translateY(-20px);
+  pointer-events: none;
+}
+.verso-card-outer[data-mode="signup"] .verso-banner-signup {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* ==========================================================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  .verso-card-outer {
+    flex-direction: column;
+    width: 100vw;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .verso-blade-band {
+    display: none;
+  }
+
+  .verso-forms-container {
+    flex-direction: column;
+  }
+
+  .verso-form-panel {
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+    padding: 4rem 2rem 2rem;
+  }
+
+  .verso-card-outer[data-mode="login"] .verso-form-panel.signup-side {
+    display: none;
+  }
+
+  .verso-card-outer[data-mode="signup"] .verso-form-panel.signin-side {
+    display: none;
+  }
+}

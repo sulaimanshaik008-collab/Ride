@@ -2,6 +2,10 @@ import { apiFetch, setCurrentUserEmailHeader } from './api';
 
 export const authService = {
   getCurrentUser: async () => {
+    const savedEmail = localStorage.getItem('user_email');
+    if (!savedEmail) {
+      return null;
+    }
     try {
       const response = await apiFetch('/auth/me', {
         method: 'GET',
@@ -9,11 +13,17 @@ export const authService = {
       return response.data;
     } catch {
       return {
-        email: 'employee.acme@corporate.com',
-        fullName: 'Acme Employee',
+        email: savedEmail,
+        fullName: savedEmail.split('@')[0],
         organizationName: 'Acme Global Corporation',
         organizationCode: 'ACME_CORP',
-        role: 'EMPLOYEE',
+        role: savedEmail.toLowerCase().includes('driver')
+          ? 'DRIVER'
+          : savedEmail.toLowerCase().includes('manager')
+          ? 'TRANSPORT_MANAGER'
+          : savedEmail.toLowerCase().includes('admin')
+          ? 'CORPORATE_ADMIN'
+          : 'EMPLOYEE',
       };
     }
   },
@@ -34,16 +44,19 @@ export const authService = {
     }
   },
 
-  loginAsEmail: async (email, password = '') => {
+  loginAsEmail: async (email, password = '', role = '') => {
     const cleanEmail = email ? email.trim() : 'employee.acme@corporate.com';
     try {
       const isEmail = cleanEmail.includes('@');
+      const payload = {
+        email: isEmail ? cleanEmail.toLowerCase() : '',
+        phoneNumber: !isEmail ? cleanEmail : '',
+      };
+      if (role) payload.role = role;
+
       const response = await apiFetch('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({
-          email: isEmail ? cleanEmail.toLowerCase() : '',
-          phoneNumber: !isEmail ? cleanEmail : '',
-        }),
+        body: JSON.stringify(payload),
       });
       return response.data;
     } catch (err) {
@@ -56,7 +69,7 @@ export const authService = {
         phoneNumber: !cleanEmail.includes('@') ? cleanEmail : '',
         organizationName: 'Acme Global Corporation',
         organizationCode: 'ACME_CORP',
-        role: 'EMPLOYEE',
+        role: role || (cleanEmail.toLowerCase().includes('driver') ? 'DRIVER' : cleanEmail.toLowerCase().includes('manager') ? 'TRANSPORT_MANAGER' : 'EMPLOYEE'),
       };
       return fallbackUser;
     }

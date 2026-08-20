@@ -1,11 +1,14 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
-let currentUserEmail = localStorage.getItem('user_email') || 'employee.acme@corporate.com';
+let currentUserEmail = localStorage.getItem('user_email') || '';
 
 export const setCurrentUserEmailHeader = (email) => {
   if (email) {
     currentUserEmail = email.trim().toLowerCase();
     localStorage.setItem('user_email', currentUserEmail);
+  } else {
+    currentUserEmail = '';
+    localStorage.removeItem('user_email');
   }
 };
 

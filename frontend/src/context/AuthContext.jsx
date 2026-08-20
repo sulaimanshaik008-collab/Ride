@@ -40,9 +40,9 @@ export const AuthProvider = ({ children }) => {
     fetchUserData();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, role) => {
     setCurrentUserEmailHeader(email);
-    const user = await authService.loginAsEmail(email, password);
+    const user = await authService.loginAsEmail(email, password, role);
     setCurrentUser(user);
     return user;
   };
