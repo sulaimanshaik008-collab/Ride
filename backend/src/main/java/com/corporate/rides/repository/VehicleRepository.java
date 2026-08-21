@@ -34,9 +34,9 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
            "AND (:vehicleStatus IS NULL OR v.vehicleStatus = :vehicleStatus) " +
            "AND (:availabilityStatus IS NULL OR v.availabilityStatus = :availabilityStatus) " +
            "AND (:maintenanceStatus IS NULL OR v.maintenanceStatus = :maintenanceStatus) " +
-           "AND (:search IS NULL OR LOWER(v.registrationNumber) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "     OR LOWER(v.make) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "     OR LOWER(v.model) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (cast(:search as string) IS NULL OR LOWER(v.registrationNumber) LIKE LOWER(CONCAT('%', cast(:search as string), '%')) " +
+           "     OR LOWER(v.make) LIKE LOWER(CONCAT('%', cast(:search as string), '%')) " +
+           "     OR LOWER(v.model) LIKE LOWER(CONCAT('%', cast(:search as string), '%'))) " +
            "ORDER BY v.createdAt DESC")
     List<Vehicle> searchTenantVehicles(
             @Param("orgId") UUID orgId,

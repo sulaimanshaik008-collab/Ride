@@ -39,9 +39,9 @@ public interface RideFeedbackRepository extends JpaRepository<RideFeedback, UUID
            "AND (:reviewStatus IS NULL OR f.reviewStatus = :reviewStatus) " +
            "AND (:driverId IS NULL OR f.driver.id = :driverId) " +
            "AND (:vehicleId IS NULL OR f.vehicle.id = :vehicleId) " +
-           "AND (:search IS NULL OR LOWER(f.comments) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "     OR LOWER(f.employee.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "     OR LOWER(f.ride.bookingReference) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (cast(:search as string) IS NULL OR LOWER(f.comments) LIKE LOWER(CONCAT('%', cast(:search as string), '%')) " +
+           "     OR LOWER(f.employee.fullName) LIKE LOWER(CONCAT('%', cast(:search as string), '%')) " +
+           "     OR LOWER(f.ride.bookingReference) LIKE LOWER(CONCAT('%', cast(:search as string), '%'))) " +
            "ORDER BY f.createdAt DESC")
     Page<RideFeedback> searchTenantFeedback(
             @Param("orgId") UUID orgId,

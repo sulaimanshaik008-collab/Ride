@@ -32,10 +32,10 @@ public interface DriverRepository extends JpaRepository<Driver, UUID> {
     @Query("SELECT d FROM Driver d WHERE d.organization.id = :orgId " +
            "AND (:driverStatus IS NULL OR d.driverStatus = :driverStatus) " +
            "AND (:availabilityStatus IS NULL OR d.availabilityStatus = :availabilityStatus) " +
-           "AND (:search IS NULL OR LOWER(d.user.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "     OR LOWER(d.user.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "     OR LOWER(d.user.phoneNumber) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "     OR LOWER(d.licenseNumber) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (cast(:search as string) IS NULL OR LOWER(d.user.fullName) LIKE LOWER(CONCAT('%', cast(:search as string), '%')) " +
+           "     OR LOWER(d.user.email) LIKE LOWER(CONCAT('%', cast(:search as string), '%')) " +
+           "     OR LOWER(d.user.phoneNumber) LIKE LOWER(CONCAT('%', cast(:search as string), '%')) " +
+           "     OR LOWER(d.licenseNumber) LIKE LOWER(CONCAT('%', cast(:search as string), '%'))) " +
            "ORDER BY d.createdAt DESC")
     List<Driver> searchTenantDrivers(
             @Param("orgId") UUID orgId,

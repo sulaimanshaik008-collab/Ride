@@ -28,7 +28,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT u FROM User u WHERE u.organization.id = :organizationId " +
            "AND (:role IS NULL OR u.role = :role) " +
            "AND (:status IS NULL OR u.status = :status) " +
-           "AND (:search IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(u.department) LIKE LOWER(CONCAT('%', :search, '%')))")
+           "AND (cast(:search as string) IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', cast(:search as string), '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', cast(:search as string), '%')) OR LOWER(u.department) LIKE LOWER(CONCAT('%', cast(:search as string), '%')))")
     Page<User> searchOrganizationUsers(
             @Param("organizationId") UUID organizationId,
             @Param("role") UserRole role,

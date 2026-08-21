@@ -118,6 +118,7 @@ class RideTrackingControllerTest {
                 .bookingDate(LocalDate.now())
                 .pickupTime(LocalTime.of(9, 30))
                 .status(RideStatus.ASSIGNED)
+                .employeeVerifiedAt(OffsetDateTime.now())
                 .build());
     }
 

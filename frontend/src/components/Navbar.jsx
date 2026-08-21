@@ -280,42 +280,6 @@ export const Navbar = () => {
             </div>
           )}
         </div>
-
-        {/* Dedicated Quick Logout Button */}
-        <button
-          type="button"
-          onClick={handleLogout}
-          title="Log Out"
-          aria-label="Log Out of RideFlow"
-          className="logout-nav-btn"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.35rem',
-            background: 'rgba(239, 68, 68, 0.12)',
-            color: '#f87171',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
-            padding: '0.45rem 0.75rem',
-            borderRadius: '8px',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            minHeight: '36px',
-            transition: 'all 0.15s ease-in-out',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.22)';
-            e.currentTarget.style.borderColor = '#ef4444';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
-            e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.25)';
-          }}
-        >
-          <LogOut size={15} />
-          <span style={{ display: 'inline' }}>Logout</span>
-        </button>
       </div>
     </header>
   );
