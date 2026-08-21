@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
@@ -36,6 +36,10 @@ import MapDemoPage from './pages/MapDemoPage';
 export const App = () => {
   const { currentUser } = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+    document.title = 'RideFlow';
+  }, []);
 
   // If a logged in DRIVER tries to navigate to employee booking pages, redirect to driver dashboard
   const isDriver = currentUser?.role === 'DRIVER';
