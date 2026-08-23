@@ -22,6 +22,12 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error("Resource not found: " + ex.getResourcePath()));
+    }
+
     @ExceptionHandler(InvalidBookingException.class)
     public ResponseEntity<ApiResponse<Void>> handleInvalidBooking(InvalidBookingException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -93,6 +99,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
         log.error("Unhandled internal server exception: ", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(ex.getMessage() != null && !ex.getMessage().isBlank() ? ex.getMessage() : "An internal server error occurred. Please try again later."));
+                .body(ApiResponse.error("An internal server error occurred. Please try again later."));
     }
 }
