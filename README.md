@@ -232,19 +232,48 @@ erDiagram
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: React 19, Vite, Lucide Icons, Vanilla CSS Design System
-- **Backend**: Java 17, Spring Boot 3.4, Spring Data JPA, Spring Security, Lombok
+- **Frontend**: React 19, Vite 6, Google Maps JavaScript API (@vis.gl/react-google-maps), Lucide Icons, Vanilla CSS Design System
+- **Backend**: Java 21 / 17, Spring Boot 3.4.2, Spring Data JPA, Spring Security, Lombok
 - **Database**: Supabase PostgreSQL with Row-Level Security (RLS)
-- **Real-Time**: Supabase Realtime for GPS tracking and alerts
+- **Mapping & Geolocation**: Google Maps Platform (Places Autocomplete, Routes API, Directions, Geocoding)
+- **Communications**: Twilio SMS Provider & In-App Notification Center
+- **Security & Reliability**: Sliding-Window Token-Bucket Rate Limiter, Correlation Request ID Logging, Sanitized Error Handling
+
+---
+
+## ⚙️ Environment Configuration
+
+### Backend (`backend/.env`)
+Copy `backend/.env.example` to `backend/.env` or configure standard environment variables:
+
+| Variable | Description | Example / Default |
+| :--- | :--- | :--- |
+| `SPRING_DATASOURCE_URL` | PostgreSQL JDBC connection URL | `jdbc:postgresql://db.xxx.supabase.co:5432/postgres` |
+| `SPRING_DATASOURCE_USERNAME` | Database username | `postgres` |
+| `SPRING_DATASOURCE_PASSWORD` | Database password | `your-secure-password` |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed CORS origins | `http://localhost:5173,https://your-domain.com` |
+| `SMS_TWILIO_ENABLED` | Enable Twilio SMS notifications | `false` (default) or `true` |
+| `TWILIO_ACCOUNT_SID` | Twilio Account SID | `ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` |
+| `TWILIO_AUTH_TOKEN` | Twilio Auth Token | `your_auth_token` |
+| `TWILIO_PHONE_NUMBER` | Twilio registered phone number | `+15551234567` |
+
+### Frontend (`frontend/.env`)
+Copy `frontend/.env.example` to `frontend/.env`:
+
+| Variable | Description | Example / Default |
+| :--- | :--- | :--- |
+| `VITE_API_BASE_URL` | Backend Spring Boot API base URL | `http://localhost:8080/api/v1` |
+| `VITE_GOOGLE_MAPS_API_KEY` | Google Maps Platform Browser API Key | `AIzaSy...` |
 
 ---
 
 ## ⚡ Getting Started
 
 ### 1. Prerequisites
-- Java 17+ JDK
+- Java 17 or 21 JDK
 - Node.js 18+ and npm
 - Supabase PostgreSQL Database
+- Google Maps API Key with Maps JS, Places, and Directions enabled
 
 ### 2. Backend Setup
 ```bash
@@ -265,15 +294,51 @@ Frontend will start on `http://localhost:5173`.
 
 ---
 
-## 🧪 Running Tests
+## 🛡️ Production Rate Limiting & Protection
 
-### Backend Unit & Integration Tests (119/119 passing)
+Native thread-safe token-bucket sliding-window rate limiting is enforced in Spring Boot without external node server dependencies:
+
+| Category | Endpoint Scope | Limit | Window | Exceeded Response |
+| :--- | :--- | :--- | :--- | :--- |
+| **Auth** | `/api/v1/auth/**` | 10 requests | 60 sec | HTTP 429 Too Many Requests |
+| **Rides** | `/api/v1/rides` (creation) | 30 requests | 60 sec | HTTP 429 Too Many Requests |
+| **Location** | `/api/v1/rides/*/location` | 180 requests | 60 sec | HTTP 429 Too Many Requests |
+| **Feedback** | `/api/v1/feedback/**` | 30 requests | 60 sec | HTTP 429 Too Many Requests |
+| **Notifications** | `/api/v1/notifications/**` | 60 requests | 60 sec | HTTP 429 Too Many Requests |
+| **General** | All other API routes | 120 requests | 60 sec | HTTP 429 Too Many Requests |
+
+### HTTP 429 Response Format
+```json
+{
+  "success": false,
+  "message": "Too many requests. Please slow down and try again later.",
+  "data": null,
+  "timestamp": "2026-08-25T19:10:00Z"
+}
+```
+**Response Headers**: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `Retry-After: 60`.
+
+---
+
+## 🔍 Observability & Health Monitoring
+
+- **Correlation ID Tracking**: Every incoming HTTP request is assigned a unique `X-Request-Id` (or preserves client-provided header).
+- **Sanitized Request Logging**: Structured logging filter recording Method, Path, HTTP Status, Execution Duration (ms), and Masked User Principal.
+- **Health Endpoints**:
+  - `GET /actuator/health` — Standard Spring Boot Actuator readiness probe.
+  - `GET /api/v1/health` — Dedicated lightweight JSON health probe with database connectivity check.
+
+---
+
+## 🧪 Running Tests & QA
+
+### Backend Unit & Integration Tests (146/146 Passing — 100% Green)
 ```bash
 cd backend
 .\mvnw.cmd test
 ```
 
-### Frontend Production Build Verification
+### Frontend Production Build Verification (0 Errors)
 ```bash
 cd frontend
 npm run build
@@ -283,6 +348,8 @@ npm run build
 
 ## 🔒 Security & Multi-Tenancy
 
-- **Tenant Isolation**: Every API endpoint derives `organization_id` strictly from authenticated security context (`UserPrincipal`).
-- **Row-Level Security**: Enabled across all Supabase PostgreSQL tables.
-- **Role-Based Access Control**: Strict RBAC rules for `EMPLOYEE`, `DRIVER`, `TRANSPORT_MANAGER`, `CORPORATE_ADMIN`, and `SYSTEM_ADMIN`.
+- **Tenant Isolation**: Every API endpoint derives `organization_id` strictly from authenticated security context (`UserPrincipal`). Client-supplied `organization_id` in request payloads is ignored and cannot overwrite the tenant boundary.
+- **Row-Level Security (RLS)**: Enforced across all Supabase PostgreSQL tables.
+- **Role-Based Access Control (RBAC)**: Strict role guards for `EMPLOYEE`, `DRIVER`, `TRANSPORT_MANAGER`, `CORPORATE_ADMIN`, and `SYSTEM_ADMIN`.
+- **Sensitive Data Masking**: PII (phone numbers, emails) and secrets are masked in logs and client responses.
+- **Stack Trace Suppression**: All unhandled exceptions are sanitized via `GlobalExceptionHandler` to prevent internal system or SQL leakages.
