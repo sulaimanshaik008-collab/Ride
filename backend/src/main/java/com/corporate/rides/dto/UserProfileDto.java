@@ -20,6 +20,9 @@ public class UserProfileDto {
     private String email;
     private String fullName;
     private String phoneNumber;
+    private String profileImageUrl;
     private String department;
     private UserRole role;
+    private java.time.OffsetDateTime createdAt;
+    private java.time.OffsetDateTime updatedAt;
 }

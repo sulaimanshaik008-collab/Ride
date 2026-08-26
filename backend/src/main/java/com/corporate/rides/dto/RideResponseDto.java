@@ -23,6 +23,7 @@ public class RideResponseDto {
     private UUID employeeId;
     private String employeeName;
     private String employeeEmail;
+    private String employeePhone;
     private String pickupLocation;
     private Double pickupLatitude;
     private Double pickupLongitude;
@@ -51,6 +52,9 @@ public class RideResponseDto {
     private OffsetDateTime employeeVerifiedAt;
     private String rejectionReason;
     private OffsetDateTime rejectedAt;
+    private OffsetDateTime completedAt;
+    private String driverNotes;
+    private String completionRemarks;
     private Boolean isDriverAccepted;
     private Boolean isEmployeeVerified;
     private OffsetDateTime createdAt;
