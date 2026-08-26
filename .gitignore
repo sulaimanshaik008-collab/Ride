@@ -21,3 +21,7 @@ Thumbs.db
 
 # Maven wrapper jar if binary
 .mvn/wrapper/maven-wrapper.jar
+
+# Uploaded runtime media
+backend/uploads/
+uploads/

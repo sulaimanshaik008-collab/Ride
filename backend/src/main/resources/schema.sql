@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(150) NOT NULL UNIQUE,
     full_name VARCHAR(100) NOT NULL,
     phone_number VARCHAR(30),
+    profile_image_url VARCHAR(500),
     department VARCHAR(100),
     role VARCHAR(30) NOT NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
@@ -48,6 +49,13 @@ CREATE TABLE IF NOT EXISTS rides (
     vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL,
     cancellation_reason VARCHAR(500),
     cancelled_at TIMESTAMP WITH TIME ZONE,
+    driver_accepted_at TIMESTAMP WITH TIME ZONE,
+    employee_verified_at TIMESTAMP WITH TIME ZONE,
+    rejection_reason VARCHAR(500),
+    rejected_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    driver_notes VARCHAR(500),
+    completion_remarks VARCHAR(500),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

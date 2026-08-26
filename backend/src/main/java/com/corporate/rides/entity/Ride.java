@@ -97,6 +97,15 @@ public class Ride {
     @Column(name = "rejected_at")
     private OffsetDateTime rejectedAt;
 
+    @Column(name = "completed_at")
+    private OffsetDateTime completedAt;
+
+    @Column(name = "driver_notes", length = 500)
+    private String driverNotes;
+
+    @Column(name = "completion_remarks", length = 500)
+    private String completionRemarks;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
