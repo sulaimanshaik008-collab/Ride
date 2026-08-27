@@ -68,6 +68,16 @@ public class RideController {
         return ResponseEntity.ok(ApiResponse.success(rides, "Schedulable ride requests retrieved successfully"));
     }
 
+    @GetMapping("/completed")
+    public ResponseEntity<ApiResponse<List<RideResponseDto>>> getCompletedTrips(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) UUID driverId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        List<RideResponseDto> completed = rideService.getCompletedTrips(search, driverId, from, to);
+        return ResponseEntity.ok(ApiResponse.success(completed, "Completed rides report retrieved successfully"));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<RideResponseDto>> getRideById(@PathVariable UUID id) {
         RideResponseDto ride = rideService.getRideById(id);
@@ -194,8 +204,10 @@ public class RideController {
     }
 
     @PostMapping("/{id}/complete")
-    public ResponseEntity<ApiResponse<RideResponseDto>> completeTrip(@PathVariable UUID id) {
-        RideResponseDto ride = rideService.completeTrip(id);
+    public ResponseEntity<ApiResponse<RideResponseDto>> completeTrip(
+            @PathVariable UUID id,
+            @RequestBody(required = false) CompleteRideRequestDto request) {
+        RideResponseDto ride = rideService.completeTrip(id, request);
         return ResponseEntity.ok(ApiResponse.success(ride, "Trip completed successfully. Real-time tracking stopped."));
     }
 

@@ -620,6 +620,12 @@ public class RideServiceImpl implements RideService {
     @Override
     @Transactional
     public RideResponseDto completeTrip(UUID rideId) {
+        return completeTrip(rideId, null);
+    }
+
+    @Override
+    @Transactional
+    public RideResponseDto completeTrip(UUID rideId, CompleteRideRequestDto request) {
         UserPrincipal currentUser = getCurrentUserPrincipal();
 
         Ride ride = rideRepository.findByIdAndOrganizationId(rideId, currentUser.getOrganizationId())
@@ -633,17 +639,78 @@ public class RideServiceImpl implements RideService {
             verifyManagementRole(currentUser);
         }
 
+        if (ride.getStatus() == RideStatus.COMPLETED) {
+            throw new InvalidBookingException("Ride is already completed. Duplicate completion is prevented.");
+        }
+
         if (ride.getStatus() != RideStatus.IN_PROGRESS && ride.getStatus() != RideStatus.ASSIGNED) {
             throw new InvalidBookingException("Cannot complete trip in state: " + ride.getStatus() + ". Only IN_PROGRESS or ASSIGNED rides can be completed.");
         }
 
+        OffsetDateTime completionTimestamp = (request != null && request.getCompletionTime() != null)
+                ? request.getCompletionTime()
+                : OffsetDateTime.now();
+
         ride.setStatus(RideStatus.COMPLETED);
+        ride.setCompletedAt(completionTimestamp);
+
+        if (request != null) {
+            if (request.getDriverNotes() != null && !request.getDriverNotes().isBlank()) {
+                ride.setDriverNotes(request.getDriverNotes().trim());
+            }
+            if (request.getCompletionRemarks() != null && !request.getCompletionRemarks().isBlank()) {
+                ride.setCompletionRemarks(request.getCompletionRemarks().trim());
+            }
+        }
+
+        // Release driver availability
+        if (ride.getDriver() != null) {
+            Driver driver = ride.getDriver();
+            driver.setAvailabilityStatus(DriverAvailability.AVAILABLE);
+            driverRepository.save(driver);
+        }
+
+        // Release vehicle availability
+        if (ride.getVehicle() != null) {
+            Vehicle vehicle = ride.getVehicle();
+            vehicle.setAvailabilityStatus(VehicleAvailability.AVAILABLE);
+            vehicleRepository.save(vehicle);
+        }
+
         Ride updatedRide = rideRepository.save(ride);
 
         User actor = userRepository.findById(currentUser.getUserId()).orElse(null);
         publishRideEvent(NotificationType.TRIP_COMPLETED, updatedRide, actor);
 
+        log.info("Ride {} completed successfully by user {}", ride.getBookingReference(), currentUser.getEmail());
         return mapToDto(updatedRide);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RideResponseDto> getCompletedTrips(String search, UUID driverId, LocalDate fromDate, LocalDate toDate) {
+        UserPrincipal currentUser = getCurrentUserPrincipal();
+        verifyManagementRole(currentUser);
+
+        List<Ride> rides;
+        if (search != null && !search.trim().isEmpty()) {
+            rides = rideRepository.findCompletedTenantRidesWithSearch(
+                    currentUser.getOrganizationId(),
+                    "%" + search.trim().toLowerCase() + "%",
+                    driverId,
+                    fromDate,
+                    toDate
+            );
+        } else {
+            rides = rideRepository.findCompletedTenantRidesWithoutSearch(
+                    currentUser.getOrganizationId(),
+                    driverId,
+                    fromDate,
+                    toDate
+            );
+        }
+
+        return rides.stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     @Override
@@ -881,6 +948,11 @@ public class RideServiceImpl implements RideService {
     }
 
     private RideResponseDto mapToDto(Ride ride) {
+        UserPrincipal currentUser = UserContextHolder.getContext();
+        boolean isOwnerEmployee = currentUser != null && ride.getEmployee() != null && ride.getEmployee().getId().equals(currentUser.getUserId());
+        boolean isAssignedDriver = currentUser != null && ride.getDriver() != null && ride.getDriver().getUser() != null && ride.getDriver().getUser().getId().equals(currentUser.getUserId());
+        boolean isManagerOrAdmin = currentUser != null && (currentUser.getRole() == UserRole.TRANSPORT_MANAGER || currentUser.getRole() == UserRole.CORPORATE_ADMIN || currentUser.getRole() == UserRole.SYSTEM_ADMIN);
+
         RideResponseDto.RideResponseDtoBuilder builder = RideResponseDto.builder()
                 .id(ride.getId())
                 .bookingReference(ride.getBookingReference())
@@ -905,16 +977,28 @@ public class RideServiceImpl implements RideService {
                 .employeeVerifiedAt(ride.getEmployeeVerifiedAt())
                 .rejectionReason(ride.getRejectionReason())
                 .rejectedAt(ride.getRejectedAt())
+                .completedAt(ride.getCompletedAt())
+                .driverNotes(ride.getDriverNotes())
+                .completionRemarks(ride.getCompletionRemarks())
                 .isDriverAccepted(ride.getDriverAcceptedAt() != null)
                 .isEmployeeVerified(ride.getEmployeeVerifiedAt() != null)
                 .createdAt(ride.getCreatedAt())
                 .updatedAt(ride.getUpdatedAt());
 
+        // Contact sharing security: employee phone is exposed to assigned driver or managers or employee themselves
+        if (isOwnerEmployee || isAssignedDriver || isManagerOrAdmin) {
+            builder.employeePhone(ride.getEmployee().getPhoneNumber());
+        }
+
         if (ride.getDriver() != null) {
             builder.driverId(ride.getDriver().getId())
                     .driverName(ride.getDriver().getUser().getFullName())
-                    .driverPhone(ride.getDriver().getUser().getPhoneNumber())
                     .driverLicenseNumber(ride.getDriver().getLicenseNumber());
+
+            // Driver phone is exposed to assigned employee or driver themselves or managers
+            if (isOwnerEmployee || isAssignedDriver || isManagerOrAdmin) {
+                builder.driverPhone(ride.getDriver().getUser().getPhoneNumber());
+            }
         }
 
         if (ride.getVehicle() != null) {

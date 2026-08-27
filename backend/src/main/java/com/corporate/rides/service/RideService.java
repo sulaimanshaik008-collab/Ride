@@ -28,14 +28,16 @@ public interface RideService {
     RideResponseDto replaceRideAssignment(UUID rideId, AssignRideRequestDto request);
     RideResponseDto unassignRideResources(UUID rideId);
 
-    // Feature 6 — Real-Time Ride Tracking & Trip Monitoring Methods
+    // Feature 6 & 11 — Real-Time Ride Tracking & Trip Completion Methods
     RideResponseDto startTrip(UUID rideId);
     LocationResponseDto updateLocation(UUID rideId, LocationUpdateDto dto);
     LocationResponseDto getLatestLocation(UUID rideId);
     List<LocationResponseDto> getLocationHistory(UUID rideId);
     RideResponseDto completeTrip(UUID rideId);
+    RideResponseDto completeTrip(UUID rideId, CompleteRideRequestDto request);
     List<RideResponseDto> getActiveTrips();
     List<RideResponseDto> getDriverAssignedTrips();
+    List<RideResponseDto> getCompletedTrips(String search, UUID driverId, LocalDate fromDate, LocalDate toDate);
 
     // Feature 7 — Driver Operations Methods
     RideResponseDto acceptRideAssignment(UUID rideId);

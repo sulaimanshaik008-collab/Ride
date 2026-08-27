@@ -122,4 +122,37 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
             @Param("from") LocalDate from,
             @Param("to") LocalDate to
     );
+
+    // Feature 11 — Completed Trips Manager Reporting Queries
+    @Query("SELECT r FROM Ride r WHERE r.organization.id = :orgId " +
+           "AND r.status = com.corporate.rides.enums.RideStatus.COMPLETED " +
+           "AND (:driverId IS NULL OR r.driver.id = :driverId) " +
+           "AND (cast(:from as date) IS NULL OR r.bookingDate >= :from) " +
+           "AND (cast(:to as date) IS NULL OR r.bookingDate <= :to) " +
+           "AND (LOWER(r.bookingReference) LIKE :searchPattern " +
+           "     OR LOWER(r.employee.fullName) LIKE :searchPattern " +
+           "     OR (r.driver IS NOT NULL AND LOWER(r.driver.user.fullName) LIKE :searchPattern) " +
+           "     OR LOWER(r.pickupLocation) LIKE :searchPattern " +
+           "     OR LOWER(r.destination) LIKE :searchPattern) " +
+           "ORDER BY coalesce(r.completedAt, r.updatedAt) DESC")
+    List<Ride> findCompletedTenantRidesWithSearch(
+            @Param("orgId") UUID orgId,
+            @Param("searchPattern") String searchPattern,
+            @Param("driverId") UUID driverId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to
+    );
+
+    @Query("SELECT r FROM Ride r WHERE r.organization.id = :orgId " +
+           "AND r.status = com.corporate.rides.enums.RideStatus.COMPLETED " +
+           "AND (:driverId IS NULL OR r.driver.id = :driverId) " +
+           "AND (cast(:from as date) IS NULL OR r.bookingDate >= :from) " +
+           "AND (cast(:to as date) IS NULL OR r.bookingDate <= :to) " +
+           "ORDER BY coalesce(r.completedAt, r.updatedAt) DESC")
+    List<Ride> findCompletedTenantRidesWithoutSearch(
+            @Param("orgId") UUID orgId,
+            @Param("driverId") UUID driverId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to
+    );
 }
