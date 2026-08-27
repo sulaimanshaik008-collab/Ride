@@ -12,6 +12,7 @@ public enum NotificationType {
     VEHICLE_ASSIGNED,
     TRIP_STARTED,
     TRIP_COMPLETED,
+    RIDE_COMPLETED,
     TRIP_DELAYED,
     RIDE_CANCELLED,
     LOW_RIDE_RATING,

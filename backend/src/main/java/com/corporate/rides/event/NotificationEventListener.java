@@ -164,14 +164,24 @@ public class NotificationEventListener {
                     );
                 }
 
-                case TRIP_COMPLETED -> {
-                    // Notify Employee
+                case TRIP_COMPLETED, RIDE_COMPLETED -> {
+                    // 1. Notify Employee (In-App + SMS if configured)
                     dispatchDualNotification(
                             ride.getEmployee(),
                             ride,
                             NotificationType.TRIP_COMPLETED,
                             "Trip Completed",
                             "Your ride (" + ride.getBookingReference() + ") has completed successfully. Thank you for riding with us!"
+                    );
+
+                    // 2. Notify Transport Managers (In-App)
+                    String driverName = ride.getDriver() != null ? ride.getDriver().getUser().getFullName() : "Assigned Driver";
+                    String employeeName = ride.getEmployee() != null ? ride.getEmployee().getFullName() : "Employee";
+                    notifyManagers(
+                            ride,
+                            NotificationType.TRIP_COMPLETED,
+                            "Ride Completed",
+                            "Ride " + ride.getBookingReference() + " has been completed by Driver " + driverName + " for " + employeeName + "."
                     );
                 }
 
