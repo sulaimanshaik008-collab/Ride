@@ -32,6 +32,7 @@ import { ManagerLiveTripsPage } from './pages/manager/ManagerLiveTripsPage';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import MapDemoPage from './pages/MapDemoPage';
+import ProfilePage from './pages/ProfilePage';
 
 export const App = () => {
   const { currentUser } = useAuth();
@@ -111,6 +112,7 @@ export const App = () => {
                 <Route path="/admin/users" element={<UserManagementPage />} />
                 <Route path="/feedback" element={<FeedbackHistoryPage />} />
                 <Route path="/manager/feedback" element={<ManagerFeedbackPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/map-demo" element={<MapDemoPage />} />
                 <Route path="*" element={<Navigate to="/login" replace />} />
               </Routes>
