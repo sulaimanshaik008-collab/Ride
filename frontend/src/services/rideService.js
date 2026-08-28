@@ -168,9 +168,40 @@ export const rideService = {
     return response.data;
   },
 
-  completeTrip: async (id) => {
-    const response = await apiFetch(`/rides/${id}/complete`, {
+  completeTrip: async (id, completionData = null) => {
+    const options = {
       method: 'POST',
+    };
+    if (completionData) {
+      options.body = JSON.stringify(completionData);
+    }
+    const response = await apiFetch(`/rides/${id}/complete`, options);
+    return response.data;
+  },
+
+  completeRide: async (id, completionData = null) => {
+    const options = {
+      method: 'POST',
+    };
+    if (completionData) {
+      options.body = JSON.stringify(completionData);
+    }
+    const response = await apiFetch(`/rides/${id}/complete`, options);
+    return response.data;
+  },
+
+  getCompletedTrips: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.search) queryParams.append('search', params.search);
+    if (params.driverId) queryParams.append('driverId', params.driverId);
+    if (params.from) queryParams.append('from', params.from);
+    if (params.to) queryParams.append('to', params.to);
+
+    const queryString = queryParams.toString();
+    const endpoint = `/rides/completed${queryString ? `?${queryString}` : ''}`;
+
+    const response = await apiFetch(endpoint, {
+      method: 'GET',
     });
     return response.data;
   },
