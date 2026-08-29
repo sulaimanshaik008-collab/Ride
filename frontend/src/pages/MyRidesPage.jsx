@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Calendar, Clock, MapPin, Navigation, XCircle, Eye, AlertTriangle, RefreshCw, Car, X } from 'lucide-react';
+import { Search, Calendar, Clock, MapPin, Navigation, XCircle, Eye, AlertTriangle, RefreshCw, Car, X, Phone, User } from 'lucide-react';
 import { rideService } from '../services/rideService';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
@@ -238,6 +238,59 @@ export const MyRidesPage = () => {
                 )}
               </div>
 
+              {/* ASSIGNED DRIVER CONTACT CARD (FEATURE 11 PART A & I) */}
+              {ride.driverName && (
+                <div
+                  style={{
+                    background: '#f0fdf4',
+                    border: '1.5px solid #bbf7d0',
+                    borderRadius: '12px',
+                    padding: '0.75rem 1rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                      <Car size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.875rem', fontWeight: 800, color: '#14532d' }}>
+                        {ride.driverName}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 600 }}>
+                        {ride.vehicleMakeModel || 'Assigned Vehicle'} &bull; {ride.vehicleRegistration || 'Standard'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {ride.driverPhone && (
+                    <a
+                      href={`tel:${ride.driverPhone}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        padding: '0.4rem 0.85rem',
+                        background: '#16a34a',
+                        color: '#ffffff',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+                      }}
+                    >
+                      <Phone size={13} />
+                      <span>Contact Driver ({ride.driverPhone})</span>
+                    </a>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1.5px solid #f1f5f9', paddingTop: '0.85rem' }}>
                 {(ride.status === 'IN_PROGRESS' || ride.status === 'ASSIGNED') && (
                   <button
@@ -425,6 +478,49 @@ export const MyRidesPage = () => {
                   <strong style={{ color: '#059669' }}>{selectedRide.organizationName}</strong>
                 </div>
               </div>
+
+              {selectedRide.driverName && (
+                <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '12px', padding: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Assigned Driver & Vehicle</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#14532d', fontSize: '0.95rem' }}>{selectedRide.driverName}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#15803d' }}>
+                        {selectedRide.vehicleMakeModel || 'Standard Fleet'} &bull; <strong>{selectedRide.vehicleRegistration}</strong>
+                      </div>
+                    </div>
+                    {selectedRide.driverPhone && (
+                      <a
+                        href={`tel:${selectedRide.driverPhone}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.45rem 0.85rem',
+                          background: '#16a34a',
+                          color: '#ffffff',
+                          borderRadius: '8px',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          textDecoration: 'none',
+                        }}
+                      >
+                        <Phone size={13} />
+                        <span>Call Driver ({selectedRide.driverPhone})</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {selectedRide.driverNotes && (
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', display: 'block', marginBottom: '0.35rem' }}>Driver Completion Notes</span>
+                  <div style={{ background: '#f8faf9', border: '1.5px solid #e2e8f0', padding: '0.75rem', borderRadius: '8px', fontSize: '0.88rem', color: '#0f172a' }}>
+                    {selectedRide.driverNotes}
+                  </div>
+                </div>
+              )}
 
               {selectedRide.bookingNotes && (
                 <div>
