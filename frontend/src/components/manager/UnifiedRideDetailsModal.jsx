@@ -159,7 +159,15 @@ export const UnifiedRideDetailsModal = ({ isOpen, onClose, ride, onOpenAssign, o
             <div style={{ fontSize: '0.825rem', color: '#64748b', marginTop: '2px', fontWeight: 500 }}>
               {ride.employeeEmail}
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700, marginTop: '6px' }}>
+            {ride.employeePhone && (
+              <div style={{ fontSize: '0.8rem', color: '#059669', marginTop: '4px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Phone size={13} />
+                <a href={`tel:${ride.employeePhone}`} style={{ color: '#059669', textDecoration: 'none' }}>
+                  {ride.employeePhone}
+                </a>
+              </div>
+            )}
+            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, marginTop: '6px' }}>
               Employee ID: EMP-{(ride.employeeId || ride.id)?.toString().substring(0, 4).toUpperCase()}
             </div>
           </div>
@@ -319,41 +327,45 @@ export const UnifiedRideDetailsModal = ({ isOpen, onClose, ride, onOpenAssign, o
           </div>
         </div>
 
-        {/* Operational Passenger Verification Badge */}
-        <div
-          style={{
-            padding: '0.9rem 1.25rem',
-            borderRadius: '12px',
-            background: ride.employeeVerifiedAt || ride.isEmployeeVerified ? '#ecfdf5' : '#f8faf9',
-            border: `1.5px solid ${ride.employeeVerifiedAt || ride.isEmployeeVerified ? '#a7f3d0' : '#e2e8f0'}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <ShieldCheck size={20} color={ride.employeeVerifiedAt || ride.isEmployeeVerified ? '#059669' : '#64748b'} />
-            <div>
-              <div style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f2920' }}>
-                Employee Passenger Verification Status
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                {ride.employeeVerifiedAt || ride.isEmployeeVerified
-                  ? 'Passenger was verified via corporate badge / OTP at pickup.'
-                  : 'Pending boarding verification by driver.'}
-              </div>
-            </div>
-          </div>
-          <span
+        {/* Trip Completion Report (Feature 11 Part C) */}
+        {(ride.status === 'COMPLETED' || ride.completedAt) && (
+          <div
             style={{
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              color: ride.employeeVerifiedAt || ride.isEmployeeVerified ? '#059669' : '#64748b',
+              padding: '1.25rem',
+              borderRadius: '14px',
+              background: '#f8fafc',
+              border: '1.5px solid #cbd5e1',
             }}
           >
-            {ride.employeeVerifiedAt || ride.isEmployeeVerified ? 'VERIFIED ✓' : 'NOT VERIFIED'}
-          </span>
-        </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#0f2920', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+              <CheckCircle2 size={16} color="#059669" />
+              <span>Trip Completion Report</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', fontSize: '0.85rem' }}>
+              <div>
+                <span style={{ color: '#64748b', fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', display: 'block' }}>Completed At</span>
+                <strong style={{ color: '#0f2920' }}>
+                  {ride.completedAt ? new Date(ride.completedAt).toLocaleString() : 'Trip Finished'}
+                </strong>
+              </div>
+
+              <div>
+                <span style={{ color: '#64748b', fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', display: 'block' }}>Driver Notes</span>
+                <span style={{ color: '#0f2920', fontWeight: 600 }}>
+                  {ride.driverNotes || 'None entered by driver'}
+                </span>
+              </div>
+
+              {ride.completionRemarks && (
+                <div style={{ gridColumn: 'span 2' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', display: 'block' }}>Remarks</span>
+                  <span style={{ color: '#0f2920', fontWeight: 600 }}>{ride.completionRemarks}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Modal Footer Actions */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>

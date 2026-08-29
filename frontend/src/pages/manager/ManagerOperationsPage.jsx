@@ -13,6 +13,8 @@ import {
   ExternalLink,
   Car,
   User,
+  Phone,
+  Filter,
 } from 'lucide-react';
 import { rideService } from '../../services/rideService';
 import { UnifiedRideDetailsModal } from '../../components/manager/UnifiedRideDetailsModal';
@@ -22,10 +24,13 @@ export const ManagerOperationsPage = () => {
   const navigate = useNavigate();
 
   const [rides, setRides] = useState([]);
+  const [completedTrips, setCompletedTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   // Modals
   const [selectedRideForDetails, setSelectedRideForDetails] = useState(null);
@@ -33,13 +38,23 @@ export const ManagerOperationsPage = () => {
 
   const fetchOperations = async () => {
     try {
-      const scheduled = await rideService.getScheduledRides().catch(() => []);
+      const [scheduled, completed] = await Promise.all([
+        rideService.getScheduledRides().catch(() => []),
+        rideService.getCompletedTrips({
+          search: searchTerm.trim() || undefined,
+          from: fromDate || undefined,
+          to: toDate || undefined,
+        }).catch(() => []),
+      ]);
+
       const sorted = (scheduled || []).sort((a, b) => {
         const timeA = a.pickupTime || '00:00';
         const timeB = b.pickupTime || '00:00';
         return timeA.localeCompare(timeB);
       });
+
       setRides(sorted);
+      setCompletedTrips(completed || []);
     } catch (err) {
       console.error('Failed to load operations timeline:', err);
     } finally {
@@ -52,14 +67,16 @@ export const ManagerOperationsPage = () => {
     fetchOperations();
     const interval = setInterval(fetchOperations, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [searchTerm, fromDate, toDate]);
 
   const handleRefresh = () => {
     setRefreshing(true);
     fetchOperations();
   };
 
-  const filteredRides = rides.filter((ride) => {
+  const currentDataSource = statusFilter === 'COMPLETED' ? completedTrips : rides;
+
+  const filteredRides = currentDataSource.filter((ride) => {
     const matchesSearch =
       ride.bookingReference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ride.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -67,7 +84,7 @@ export const ManagerOperationsPage = () => {
       ride.pickupLocation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ride.destination?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === 'ALL' || ride.status === statusFilter;
+    const matchesStatus = statusFilter === 'ALL' || statusFilter === 'COMPLETED' || ride.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -165,7 +182,7 @@ export const ManagerOperationsPage = () => {
             { key: 'IN_PROGRESS', label: 'In Progress' },
             { key: 'ASSIGNED', label: 'Assigned' },
             { key: 'SCHEDULED', label: 'Needs Assignment' },
-            { key: 'COMPLETED', label: 'Completed' },
+            { key: 'COMPLETED', label: 'Completed Trips Report' },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -187,6 +204,35 @@ export const ManagerOperationsPage = () => {
             </button>
           ))}
         </div>
+
+        {/* Optional Date Range Filter for Completed Reporting */}
+        {statusFilter === 'COMPLETED' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Date Range:</span>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              style={{ padding: '0.4rem 0.65rem', borderRadius: '6px', border: '1.5px solid #e2e8f0', fontSize: '0.8rem' }}
+            />
+            <span style={{ color: '#64748b' }}>to</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              style={{ padding: '0.4rem 0.65rem', borderRadius: '6px', border: '1.5px solid #e2e8f0', fontSize: '0.8rem' }}
+            />
+            {(fromDate || toDate) && (
+              <button
+                type="button"
+                onClick={() => { setFromDate(''); setToDate(''); }}
+                style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Clear Dates
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Timeline View */}
@@ -341,14 +387,25 @@ export const ManagerOperationsPage = () => {
                         </span>
                       </div>
 
-                      <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f2920', marginTop: '2px' }}>
-                        {ride.employeeName || 'Corporate Passenger'}
+                      <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f2920', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span>{ride.employeeName || 'Corporate Passenger'}</span>
+                        {ride.employeePhone && (
+                          <a href={`tel:${ride.employeePhone}`} style={{ fontSize: '0.75rem', color: '#059669', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', textDecoration: 'none', fontWeight: 700 }}>
+                            <Phone size={11} /> {ride.employeePhone}
+                          </a>
+                        )}
                       </div>
 
                       <div style={{ fontSize: '0.825rem', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
                         <MapPin size={14} color="#059669" />
                         <span style={{ color: '#0f2920' }}>{ride.pickupLocation} &rarr; {ride.destination}</span>
                       </div>
+
+                      {ride.driverNotes && (
+                        <div style={{ fontSize: '0.75rem', color: '#0f766e', marginTop: '4px', background: '#f0fdfa', padding: '0.25rem 0.5rem', borderRadius: '6px', border: '1px solid #ccfbf1', display: 'inline-block' }}>
+                          <strong>Driver Note:</strong> {ride.driverNotes}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -370,12 +427,20 @@ export const ManagerOperationsPage = () => {
                       <div style={{ fontWeight: 800, color: ride.driverName ? '#0f2920' : '#ef4444' }}>
                         {ride.driverName || 'Unassigned'}
                       </div>
+                      {ride.driverPhone && (
+                        <a href={`tel:${ride.driverPhone}`} style={{ fontSize: '0.725rem', color: '#059669', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', textDecoration: 'none', fontWeight: 700, marginTop: '2px' }}>
+                          <Phone size={10} /> {ride.driverPhone}
+                        </a>
+                      )}
                     </div>
                     <div style={{ borderLeft: '1.5px solid #e2e8f0', paddingLeft: '1rem' }}>
                       <div style={{ fontSize: '0.675rem', color: '#2563eb', textTransform: 'uppercase', fontWeight: 800 }}>Vehicle</div>
                       <div style={{ fontWeight: 800, color: ride.vehicleRegistration ? '#0f2920' : '#ef4444' }}>
                         {ride.vehicleRegistration || 'Unassigned'}
                       </div>
+                      {ride.vehicleMakeModel && (
+                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{ride.vehicleMakeModel}</div>
+                      )}
                     </div>
                   </div>
 
