@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, CheckCircle2, Navigation, MapPin, Clock, 
-  ShieldAlert, RefreshCw, Car, User, AlertCircle, Compass, Gauge, AlertTriangle, Eye, ArrowRight, XCircle, PhoneCall, X
+  ShieldAlert, RefreshCw, Car, User, AlertCircle, Compass, Gauge, AlertTriangle, Eye, ArrowRight, XCircle, PhoneCall, X, Phone
 } from 'lucide-react';
 import { rideService } from '../services/rideService';
 import { useAuth } from '../context/AuthContext';
@@ -449,6 +449,30 @@ export const DriverTripPage = () => {
                       <div style={{ background: '#f8faf9', border: '1.5px solid #e2e8f0', padding: '0.55rem 0.75rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
                         <Car size={15} color="#2563eb" />
                         <span style={{ color: '#64748b' }}>Vehicle: <strong style={{ color: '#2563eb' }}>{ride.vehicleRegistration}</strong> ({ride.vehicleMakeModel || 'Fleet Sedan'})</span>
+                      </div>
+                    )}
+
+                    {ride.employeePhone && (
+                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.55rem 0.75rem', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                        <span style={{ color: '#166534', fontWeight: 700 }}>Passenger Phone: {ride.employeePhone}</span>
+                        <a
+                          href={`tel:${ride.employeePhone}`}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            padding: '0.25rem 0.6rem',
+                            background: '#16a34a',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                          }}
+                        >
+                          <Phone size={12} />
+                          <span>Call Passenger</span>
+                        </a>
                       </div>
                     )}
                   </div>

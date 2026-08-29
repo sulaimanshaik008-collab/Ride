@@ -21,7 +21,8 @@ import {
   ShieldAlert,
   Gauge,
   Compass,
-  AlertCircle
+  AlertCircle,
+  Phone,
 } from 'lucide-react';
 import { rideService } from '../../services/rideService';
 import { driverService } from '../../services/driverService';
@@ -54,6 +55,8 @@ export const DriverDashboardPage = () => {
 
   // Complete Ride Modal
   const [completeModalRide, setCompleteModalRide] = useState(null);
+  const [completeNotes, setCompleteNotes] = useState('');
+  const [completeRemarks, setCompleteRemarks] = useState('');
 
   // Live GPS Telemetry for In-Progress Ride
   const [lastLocation, setLastLocation] = useState(null);
@@ -272,10 +275,15 @@ export const DriverDashboardPage = () => {
     try {
       setActionLoading(true);
       setErrorMsg(null);
-      await rideService.completeTrip(completeModalRide.id);
+      await rideService.completeRide(completeModalRide.id, {
+        driverNotes: completeNotes.trim() || undefined,
+        completionRemarks: completeRemarks.trim() || undefined,
+      });
       stopLocationStreaming();
-      setFeedbackMsg(`Ride Completed Successfully! Thank you.`);
+      setFeedbackMsg(`Ride #${completeModalRide.bookingReference} Completed Successfully! Driver & Vehicle availability released.`);
       setCompleteModalRide(null);
+      setCompleteNotes('');
+      setCompleteRemarks('');
       await fetchDashboardData();
     } catch (err) {
       setErrorMsg(err.message || 'Failed to complete trip');
@@ -439,9 +447,32 @@ export const DriverDashboardPage = () => {
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>
                 Passenger / Employee
               </div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f2920', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <User size={16} color="#2563eb" />
-                <span>{newAssignmentRide.employeeName || 'Corporate Passenger'}</span>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f2920', display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <User size={16} color="#2563eb" />
+                  <span>{newAssignmentRide.employeeName || 'Corporate Passenger'}</span>
+                </div>
+                {newAssignmentRide.employeePhone && (
+                  <a
+                    href={`tel:${newAssignmentRide.employeePhone}`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      padding: '0.25rem 0.6rem',
+                      background: '#ecfdf5',
+                      color: '#059669',
+                      border: '1px solid #a7f3d0',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <Phone size={12} />
+                    <span>{newAssignmentRide.employeePhone}</span>
+                  </a>
+                )}
               </div>
             </div>
 
@@ -596,8 +627,29 @@ export const DriverDashboardPage = () => {
                 <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
                   Passenger
                 </div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#2563eb' }}>
-                  {inProgressRide.employeeName}
+                <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#2563eb', display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                  <span>{inProgressRide.employeeName}</span>
+                  {inProgressRide.employeePhone && (
+                    <a
+                      href={`tel:${inProgressRide.employeePhone}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        padding: '0.25rem 0.6rem',
+                        background: '#ecfdf5',
+                        color: '#059669',
+                        border: '1px solid #a7f3d0',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      <Phone size={12} />
+                      <span>{inProgressRide.employeePhone}</span>
+                    </a>
+                  )}
                 </div>
               </div>
 
@@ -706,9 +758,32 @@ export const DriverDashboardPage = () => {
               <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '6px' }}>
                 Passenger Details
               </div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f2920', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <User size={18} color="#2563eb" />
-                <span>{acceptedRide.employeeName || 'Corporate Passenger'}</span>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f2920', display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <User size={18} color="#2563eb" />
+                  <span>{acceptedRide.employeeName || 'Corporate Passenger'}</span>
+                </div>
+                {acceptedRide.employeePhone && (
+                  <a
+                    href={`tel:${acceptedRide.employeePhone}`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.35rem 0.75rem',
+                      background: '#16a34a',
+                      color: '#ffffff',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+                    }}
+                  >
+                    <Phone size={13} />
+                    <span>Contact Passenger ({acceptedRide.employeePhone})</span>
+                  </a>
+                )}
               </div>
               <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.5rem', fontWeight: 600 }}>
                 Email: {acceptedRide.employeeEmail}
@@ -1159,7 +1234,7 @@ export const DriverDashboardPage = () => {
         </div>
       )}
 
-      {/* MODAL: COMPLETE RIDE CONFIRMATION */}
+      {/* MODAL: COMPLETE RIDE CONFIRMATION (FEATURE 11 PART B) */}
       {completeModalRide && (
         <div
           className="modal-overlay"
@@ -1172,19 +1247,111 @@ export const DriverDashboardPage = () => {
               background: '#ffffff',
               border: '1.5px solid #e2e8f0',
               borderRadius: '20px',
-              maxWidth: '460px',
+              maxWidth: '520px',
               width: '100%',
               padding: '1.75rem',
               boxShadow: '0 20px 50px rgba(0, 0, 0, 0.2)',
               color: '#0f2920',
             }}
           >
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f2920', margin: '0 0 0.5rem 0' }}>
-              Complete Ride?
-            </h3>
-            <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1.25rem' }}>
-              Are you sure the ride has safely reached its destination at <strong style={{ color: '#0f2920' }}>{completeModalRide.destination}</strong>?
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.75rem' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle2 size={22} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f2920', margin: 0 }}>
+                  Complete Ride Workflow
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: '#2563eb', fontWeight: 700 }}>
+                  #{completeModalRide.bookingReference}
+                </span>
+              </div>
+            </div>
+
+            {/* Ride Summary Before Completion */}
+            <div
+              style={{
+                background: '#f8faf9',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '1rem',
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '0.75rem',
+                fontSize: '0.825rem',
+                marginBottom: '1rem',
+              }}
+            >
+              <div>
+                <span style={{ color: '#64748b', fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', display: 'block' }}>Passenger</span>
+                <strong style={{ color: '#0f2920' }}>{completeModalRide.employeeName}</strong>
+                {completeModalRide.employeePhone && (
+                  <div style={{ color: '#059669', fontSize: '0.75rem', fontWeight: 700 }}>{completeModalRide.employeePhone}</div>
+                )}
+              </div>
+              <div>
+                <span style={{ color: '#64748b', fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', display: 'block' }}>Trip Status</span>
+                <span style={{ color: '#059669', fontWeight: 800 }}>{completeModalRide.status?.replace('_', ' ')}</span>
+              </div>
+              <div style={{ gridColumn: 'span 2', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
+                <span style={{ color: '#64748b', fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', display: 'block' }}>Pickup & Destination</span>
+                <div style={{ color: '#0f2920', fontWeight: 600, marginTop: '2px' }}>
+                  <strong>From:</strong> {completeModalRide.pickupLocation}
+                </div>
+                <div style={{ color: '#0f2920', fontWeight: 600, marginTop: '2px' }}>
+                  <strong>To:</strong> {completeModalRide.destination}
+                </div>
+              </div>
+            </div>
+
+            {/* Optional Completion Notes */}
+            <div style={{ marginBottom: '0.85rem' }}>
+              <label htmlFor="driverNotes" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '4px' }}>
+                Driver Completion Notes (Optional)
+              </label>
+              <textarea
+                id="driverNotes"
+                rows={2}
+                value={completeNotes}
+                onChange={(e) => setCompleteNotes(e.target.value)}
+                placeholder="e.g. Passenger dropped at Main Lobby gate. Smooth trip."
+                style={{
+                  width: '100%',
+                  background: '#ffffff',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '0.65rem',
+                  color: '#0f172a',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label htmlFor="completionRemarks" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '4px' }}>
+                Completion Remarks / Feedback (Optional)
+              </label>
+              <input
+                id="completionRemarks"
+                type="text"
+                value={completeRemarks}
+                onChange={(e) => setCompleteRemarks(e.target.value)}
+                placeholder="e.g. On-time arrival, zero delay"
+                style={{
+                  width: '100%',
+                  background: '#ffffff',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '0.65rem',
+                  color: '#0f172a',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem' }}>
               <button
@@ -1217,7 +1384,7 @@ export const DriverDashboardPage = () => {
                   boxShadow: '0 4px 15px rgba(19, 56, 44, 0.25)',
                 }}
               >
-                {actionLoading ? 'Completing...' : 'Yes, Complete Ride'}
+                {actionLoading ? 'Completing Trip...' : 'Confirm & Complete Ride'}
               </button>
             </div>
           </div>
