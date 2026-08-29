@@ -121,32 +121,85 @@ export const DriverLayout = () => {
         }}
       >
         {/* Left: Brand + Driver Identity */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <NavLink to="/driver/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', textDecoration: 'none', color: '#0f2920' }}>
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(145deg, #184738 0%, #0d261e 100%)', border: '1px solid rgba(16, 185, 129, 0.4)', display: 'center', alignItems: 'center', justifyContent: 'center', color: '#10b981', boxShadow: '0 4px 12px rgba(19, 56, 44, 0.25)' }}>
-              <MotorcycleKeyIcon size={22} color="#10b981" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexShrink: 0 }}>
+          <NavLink
+            to="/driver/dashboard"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              textDecoration: 'none',
+              color: '#0f2920',
+              flexShrink: 0,
+            }}
+          >
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: 'linear-gradient(145deg, #184738 0%, #0d261e 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#10b981',
+                boxShadow: '0 4px 12px rgba(19, 56, 44, 0.25)',
+                flexShrink: 0,
+              }}
+            >
+              <MotorcycleKeyIcon size={26} color="#10b981" />
             </div>
-            <div>
-              <div style={{ fontWeight: 900, fontSize: '1.1rem', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#0f2920' }}>
-                RideFlow <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.12)', color: '#059669', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Driver Desk</span>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}>
+              <span
+                style={{
+                  fontWeight: 900,
+                  fontSize: '1.2rem',
+                  letterSpacing: '-0.025em',
+                  color: '#0f2920',
+                  lineHeight: 1,
+                }}
+              >
+                RideFlow
+              </span>
+              <span
+                style={{
+                  fontSize: '0.7rem',
+                  padding: '0.25rem 0.55rem',
+                  borderRadius: '6px',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  color: '#047857',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  lineHeight: 1,
+                  flexShrink: 0,
+                }}
+              >
+                Driver Desk
+              </span>
             </div>
           </NavLink>
-
-          <div className="driver-greeting-block" style={{ borderLeft: '1.5px solid #e2e8f0', paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f2920' }}>
-              {currentUser?.fullName ? `Good Day, ${currentUser.fullName}` : 'Driver Operations'}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
-              <span>ID: <strong style={{ color: '#0f2920' }}>{driverBadgeId}</strong></span>
-              <span>&bull;</span>
-              <span>{currentUser?.organizationName || 'Corporate Fleet'}</span>
-            </div>
-          </div>
         </div>
 
         {/* Center: Desktop Navigation Bar */}
-        <nav className="driver-desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#eef2ef', padding: '0.35rem', borderRadius: '9999px', border: '1.5px solid #e2e8f0' }}>
+        <nav
+          className="driver-desktop-nav"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            background: '#eef2ef',
+            padding: '0.35rem',
+            borderRadius: '9999px',
+            border: '1.5px solid #e2e8f0',
+            margin: '0 1.5rem',
+            flexShrink: 0,
+          }}
+        >
           <NavLink
             to="/driver/dashboard"
             className={({ isActive }) => `driver-nav-pill ${isActive ? 'active' : ''}`}
@@ -215,9 +268,9 @@ export const DriverLayout = () => {
         </nav>
 
         {/* Right: Availability Toggle + Notification Bell + Profile */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0, marginLeft: 'auto' }}>
           {/* Driver Status Pill & Dropdown */}
-          <div ref={statusMenuRef} style={{ position: 'relative' }}>
+          <div ref={statusMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
@@ -334,7 +387,7 @@ export const DriverLayout = () => {
           <NotificationBell />
 
           {/* Profile Popover */}
-          <div ref={profileMenuRef} style={{ position: 'relative' }}>
+          <div ref={profileMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
@@ -342,13 +395,20 @@ export const DriverLayout = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                background: 'transparent',
-                border: 'none',
+                background: 'rgba(255, 255, 255, 0.95)',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '9999px',
                 cursor: 'pointer',
-                padding: 0,
+                padding: '0.25rem 0.75rem 0.25rem 0.25rem',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                transition: 'all 0.15s ease',
               }}
             >
-              <UserAvatar user={currentUser} size={34} />
+              <UserAvatar user={currentUser} size={32} />
+              <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f2920', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {currentUser?.fullName || currentUser?.email?.split('@')[0] || 'Driver'}
+              </span>
+              <ChevronDown size={14} color="#64748b" />
             </button>
 
             {profileDropdownOpen && (

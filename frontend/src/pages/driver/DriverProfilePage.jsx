@@ -14,6 +14,8 @@ import {
 import { driverService } from '../../services/driverService';
 import { useAuth } from '../../context/AuthContext';
 
+import { UserAvatar } from '../../components/UserAvatar';
+
 export const DriverProfilePage = () => {
   const { currentUser } = useAuth();
   const [profile, setProfile] = useState(null);
@@ -80,26 +82,10 @@ export const DriverProfilePage = () => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-              <div
-                style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(180deg, #184738 0%, #103327 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                  fontSize: '1.5rem',
-                  fontWeight: 900,
-                  boxShadow: '0 4px 14px rgba(19, 56, 44, 0.3)',
-                }}
-              >
-                {currentUser?.fullName?.charAt(0) || 'D'}
-              </div>
+              <UserAvatar user={currentUser || profile} size={60} />
               <div>
                 <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f2920', margin: 0 }}>
-                  {profile?.fullName || currentUser?.fullName}
+                  {profile?.fullName || currentUser?.fullName || currentUser?.email?.split('@')[0] || 'Driver Partner'}
                 </h2>
                 <div style={{ fontSize: '0.875rem', color: '#059669', fontWeight: 800, marginTop: '2px' }}>
                   License: {profile?.licenseNumber || 'DL-ACME-9081'}
