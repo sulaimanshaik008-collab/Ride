@@ -12,6 +12,8 @@ import {
   BarChart3,
   LogOut,
   ChevronDown,
+  User,
+  Bell,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { NotificationBell } from './NotificationBell';
@@ -203,6 +205,30 @@ export const Navbar = () => {
                 </div>
               </div>
 
+              {/* Dropdown Options */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '0.75rem' }}>
+                <NavLink
+                  to="/profile"
+                  onClick={() => setIsDropdownOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.55rem',
+                    padding: '0.55rem 0.75rem',
+                    borderRadius: '8px',
+                    color: '#1e293b',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <User size={15} color="#059669" />
+                  <span>My Profile</span>
+                </NavLink>
+              </div>
+
               {/* Direct Link to Manager Control Center */}
               {(currentUser?.role === 'TRANSPORT_MANAGER' || currentUser?.role === 'CORPORATE_ADMIN' || currentUser?.role === 'SYSTEM_ADMIN') && (
                 <NavLink
@@ -222,36 +248,13 @@ export const Navbar = () => {
                     fontWeight: 800,
                     textDecoration: 'none',
                     marginBottom: '0.5rem',
+                    boxSizing: 'border-box',
                   }}
                 >
                   <Navigation size={14} />
                   <span>Open Manager Desk</span>
                 </NavLink>
               )}
-
-              {/* Direct Link to Driver Operations */}
-              <NavLink
-                to="/driver/dashboard"
-                onClick={() => setIsDropdownOpen(false)}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  padding: '0.6rem 0.75rem',
-                  borderRadius: '10px',
-                  background: '#ecfdf5',
-                  color: '#059669',
-                  border: '1px solid #a7f3d0',
-                  fontSize: '0.825rem',
-                  fontWeight: 800,
-                  textDecoration: 'none',
-                  marginBottom: '0.5rem',
-                }}
-              >
-                <Navigation size={14} />
-                <span>Open Driver Operations</span>
-              </NavLink>
 
               {/* Logout Option */}
               <button
@@ -272,6 +275,7 @@ export const Navbar = () => {
                   fontWeight: 800,
                   cursor: 'pointer',
                   transition: 'all 0.15s',
+                  boxSizing: 'border-box',
                 }}
               >
                 <LogOut size={14} />
