@@ -222,6 +222,33 @@ export const MyRidesPage = () => {
                 </div>
               </div>
 
+              {/* Colleague Rider Indicator Badge */}
+              {ride.riderType === 'COLLEAGUE' && (
+                <div
+                  style={{
+                    background: 'rgba(22, 64, 50, 0.08)',
+                    border: '1px solid rgba(5, 150, 105, 0.25)',
+                    borderRadius: '10px',
+                    padding: '0.5rem 0.85rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.4rem',
+                    fontSize: '0.82rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#065f46', fontWeight: 800 }}>
+                    <User size={14} />
+                    <span>Colleague Ride:</span>
+                    <strong style={{ color: '#0f2920' }}>{ride.riderName}</strong>
+                  </div>
+                  {ride.riderPhone && (
+                    <span style={{ color: '#047857', fontWeight: 700, fontSize: '0.78rem' }}>{ride.riderPhone}</span>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.825rem', color: '#64748b', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <Calendar size={14} color="#d97706" />
@@ -470,7 +497,17 @@ export const MyRidesPage = () => {
                   <strong style={{ color: '#0f2920' }}>{selectedRide.pickupTime}</strong>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Passenger Name</span>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                    {selectedRide.riderType === 'COLLEAGUE' ? 'Passenger (Colleague)' : 'Passenger Name'}
+                  </span>
+                  <strong style={{ color: selectedRide.riderType === 'COLLEAGUE' ? '#059669' : '#0f2920' }}>
+                    {selectedRide.riderType === 'COLLEAGUE'
+                      ? `${selectedRide.riderName || 'Colleague'} ${selectedRide.riderPhone ? `(${selectedRide.riderPhone})` : ''}`
+                      : selectedRide.employeeName}
+                  </strong>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Booked By</span>
                   <strong style={{ color: '#0f2920' }}>{selectedRide.employeeName}</strong>
                 </div>
                 <div>

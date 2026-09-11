@@ -41,4 +41,8 @@ public class CreateRideRequestDto {
 
     @Size(max = 500, message = "Booking notes cannot exceed 500 characters")
     private String bookingNotes;
+
+    private String riderType;
+    private String riderName;
+    private String riderPhone;
 }
