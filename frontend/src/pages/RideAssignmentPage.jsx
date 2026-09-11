@@ -349,6 +349,11 @@ export const RideAssignmentPage = () => {
                         <Clock size={14} color="#d97706" />
                         <span>Time: <strong style={{ color: '#0f2920' }}>{ride.pickupTime}</strong></span>
                       </div>
+                      {ride.estimatedCost != null && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <span>Cost: <strong style={{ color: '#059669' }}>₹{ride.estimatedCost}</strong> ({ride.distanceKm || '12.5'} km)</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -599,10 +604,10 @@ export const RideAssignmentPage = () => {
                       outline: 'none',
                     }}
                   >
-                    <option value="">-- Choose Active Driver --</option>
+                    <option value="">-- Choose Verified Driver --</option>
                     {assignmentOptions.eligibleDrivers.map((d) => (
                       <option key={d.id} value={d.id}>
-                        {d.fullName} (License: {d.licenseNumber} - Phone: {d.phoneNumber})
+                        {d.fullName} (✓ Verified - {d.vehiclePlateNumber ? `Plate: ${d.vehiclePlateNumber}` : `DL: ${d.licenseNumber}`})
                       </option>
                     ))}
                   </select>

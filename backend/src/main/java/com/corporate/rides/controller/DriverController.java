@@ -71,4 +71,41 @@ public class DriverController {
         DriverResponseDto driver = driverService.updateDriverAvailability(id, request);
         return ResponseEntity.ok(ApiResponse.success(driver, "Driver availability updated successfully"));
     }
+
+    @PutMapping("/self/documents")
+    public ResponseEntity<ApiResponse<DriverResponseDto>> updateSelfDocuments(
+            @Valid @RequestBody DriverDocumentUpdateDto request) {
+        DriverResponseDto driver = driverService.updateSelfDriverDocuments(request);
+        return ResponseEntity.ok(ApiResponse.success(driver, "Driver documents updated successfully and submitted for verification"));
+    }
+
+    @PostMapping("/{id}/verify")
+    public ResponseEntity<ApiResponse<DriverResponseDto>> verifyDriver(
+            @PathVariable UUID id,
+            @Valid @RequestBody DriverVerificationDto request) {
+        DriverResponseDto driver = driverService.verifyDriverDocuments(id, request);
+        return ResponseEntity.ok(ApiResponse.success(driver, "Driver verification status updated successfully"));
+    }
+
+    @GetMapping("/self/earnings/monthly")
+    public ResponseEntity<ApiResponse<DriverMonthlyPayoutDto>> getSelfMonthlyEarnings(
+            @RequestParam(required = false) String month) {
+        DriverMonthlyPayoutDto earnings = driverService.getSelfDriverMonthlyPayout(month);
+        return ResponseEntity.ok(ApiResponse.success(earnings, "Monthly earnings retrieved successfully"));
+    }
+
+    @GetMapping("/payouts/monthly")
+    public ResponseEntity<ApiResponse<List<DriverMonthlyPayoutDto>>> getMonthlyPayouts(
+            @RequestParam(required = false) String month) {
+        List<DriverMonthlyPayoutDto> payouts = driverService.getAllDriversMonthlyPayouts(month);
+        return ResponseEntity.ok(ApiResponse.success(payouts, "Organization driver payouts retrieved successfully"));
+    }
+
+    @PostMapping("/{id}/payouts/pay")
+    public ResponseEntity<ApiResponse<DriverMonthlyPayoutDto>> processDriverPayout(
+            @PathVariable UUID id,
+            @Valid @RequestBody ProcessPayoutRequestDto request) {
+        DriverMonthlyPayoutDto payout = driverService.processDriverMonthlyPayout(id, request);
+        return ResponseEntity.ok(ApiResponse.success(payout, "Driver payout processed successfully"));
+    }
 }

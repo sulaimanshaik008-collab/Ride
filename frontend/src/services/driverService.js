@@ -61,4 +61,44 @@ export const driverService = {
     });
     return response.data;
   },
+
+  updateSelfDocuments: async (documentData) => {
+    const response = await apiFetch('/drivers/self/documents', {
+      method: 'PUT',
+      body: JSON.stringify(documentData),
+    });
+    return response.data;
+  },
+
+  verifyDriver: async (id, verificationData) => {
+    const response = await apiFetch(`/drivers/${id}/verify`, {
+      method: 'POST',
+      body: JSON.stringify(verificationData),
+    });
+    return response.data;
+  },
+
+  getSelfMonthlyEarnings: async (month) => {
+    const endpoint = `/drivers/self/earnings/monthly${month ? `?month=${month}` : ''}`;
+    const response = await apiFetch(endpoint, {
+      method: 'GET',
+    });
+    return response.data;
+  },
+
+  getMonthlyPayouts: async (month) => {
+    const endpoint = `/drivers/payouts/monthly${month ? `?month=${month}` : ''}`;
+    const response = await apiFetch(endpoint, {
+      method: 'GET',
+    });
+    return response.data;
+  },
+
+  processDriverPayout: async (id, payoutData) => {
+    const response = await apiFetch(`/drivers/${id}/payouts/pay`, {
+      method: 'POST',
+      body: JSON.stringify(payoutData),
+    });
+    return response.data;
+  },
 };

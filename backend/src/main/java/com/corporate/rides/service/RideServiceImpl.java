@@ -71,6 +71,23 @@ public class RideServiceImpl implements RideService {
 
         String bookingRef = generateUniqueBookingReference();
 
+        String riderType = (request.getRiderType() != null && !request.getRiderType().isBlank())
+                ? request.getRiderType().trim()
+                : "SELF";
+        String riderName = (request.getRiderName() != null && !request.getRiderName().isBlank())
+                ? request.getRiderName().trim()
+                : employee.getFullName();
+        String riderPhone = (request.getRiderPhone() != null && !request.getRiderPhone().isBlank())
+                ? request.getRiderPhone().trim()
+                : employee.getPhoneNumber();
+
+        // Compute estimated distance and fare
+        Double distanceKm = calculateEstimatedDistance(
+                request.getPickupLatitude(), request.getPickupLongitude(),
+                request.getDestinationLatitude(), request.getDestinationLongitude()
+        );
+        Double estimatedCost = calculateEstimatedCost(distanceKm);
+
         Ride ride = Ride.builder()
                 .bookingReference(bookingRef)
                 .organization(organization)
@@ -81,9 +98,15 @@ public class RideServiceImpl implements RideService {
                 .pickupLongitude(request.getPickupLongitude())
                 .destinationLatitude(request.getDestinationLatitude())
                 .destinationLongitude(request.getDestinationLongitude())
+                .distanceKm(distanceKm)
+                .estimatedCost(estimatedCost)
+                .paymentStatus(PaymentStatus.PENDING)
                 .bookingDate(request.getBookingDate())
                 .pickupTime(request.getPickupTime())
                 .bookingNotes(request.getBookingNotes() != null ? request.getBookingNotes().trim() : null)
+                .riderType(riderType)
+                .riderName(riderName)
+                .riderPhone(riderPhone)
                 .status(RideStatus.PENDING_APPROVAL)
                 .build();
 
@@ -180,9 +203,12 @@ public class RideServiceImpl implements RideService {
         }
 
         ride.setStatus(RideStatus.SCHEDULED);
+        User actor = userRepository.findById(currentUser.getUserId()).orElse(null);
+        ride.setApprovedBy(actor);
+        ride.setApprovedAt(OffsetDateTime.now());
+
         Ride updatedRide = rideRepository.save(ride);
 
-        User actor = userRepository.findById(currentUser.getUserId()).orElse(null);
         publishRideEvent(NotificationType.RIDE_APPROVED, updatedRide, actor);
 
         return mapToDto(updatedRide);
@@ -356,6 +382,7 @@ public class RideServiceImpl implements RideService {
 
         List<DriverResponseDto> eligibleDrivers = allDrivers.stream()
                 .filter(d -> d.getDriverStatus() == DriverStatus.ACTIVE && d.getAvailabilityStatus() == DriverAvailability.AVAILABLE)
+                .filter(d -> d.getVerificationStatus() == DriverVerificationStatus.VERIFIED)
                 .filter(d -> d.getLicenseExpiryDate() != null && !d.getLicenseExpiryDate().isBefore(LocalDate.now()))
                 .filter(d -> !hasDriverConflict(currentUser.getOrganizationId(), d.getId(), ride.getBookingDate(), ride.getPickupTime(), ride.getId()))
                 .map(this::mapDriverToDto)
@@ -829,11 +856,15 @@ public class RideServiceImpl implements RideService {
         String inputIdentifier = request.getEmployeeIdentifier().trim().toLowerCase();
 
         boolean isEmailMatch = assignedEmployee.getEmail() != null && assignedEmployee.getEmail().trim().toLowerCase().equals(inputIdentifier);
-        boolean isPhoneMatch = assignedEmployee.getPhoneNumber() != null && (
+        boolean isPhoneMatch = (assignedEmployee.getPhoneNumber() != null && (
                 assignedEmployee.getPhoneNumber().replaceAll("[^0-9]", "").contains(inputIdentifier.replaceAll("[^0-9]", ""))
                 || inputIdentifier.replaceAll("[^0-9]", "").contains(assignedEmployee.getPhoneNumber().replaceAll("[^0-9]", ""))
-        );
-        boolean isNameMatch = assignedEmployee.getFullName() != null && assignedEmployee.getFullName().trim().equalsIgnoreCase(request.getEmployeeIdentifier().trim());
+        )) || (ride.getRiderPhone() != null && (
+                ride.getRiderPhone().replaceAll("[^0-9]", "").contains(inputIdentifier.replaceAll("[^0-9]", ""))
+                || inputIdentifier.replaceAll("[^0-9]", "").contains(ride.getRiderPhone().replaceAll("[^0-9]", ""))
+        ));
+        boolean isNameMatch = (assignedEmployee.getFullName() != null && assignedEmployee.getFullName().trim().equalsIgnoreCase(request.getEmployeeIdentifier().trim()))
+                || (ride.getRiderName() != null && ride.getRiderName().trim().equalsIgnoreCase(request.getEmployeeIdentifier().trim()));
         boolean isBadgeMatch = inputIdentifier.startsWith("emp-") || inputIdentifier.startsWith("emp_") || inputIdentifier.equalsIgnoreCase(assignedEmployee.getId().toString().substring(0, 8));
 
         // Accept email, full name, phone number, or employee badge match
@@ -884,9 +915,36 @@ public class RideServiceImpl implements RideService {
         if (driver.getAvailabilityStatus() != DriverAvailability.AVAILABLE) {
             throw new InvalidBookingException("Driver '" + driver.getUser().getFullName() + "' is currently UNAVAILABLE");
         }
+        if (driver.getVerificationStatus() != DriverVerificationStatus.VERIFIED) {
+            throw new InvalidBookingException("Driver '" + driver.getUser().getFullName() + "' is not verified by Transport Management (Current Status: " + driver.getVerificationStatus() + "). Documents must be approved first.");
+        }
         if (driver.getLicenseExpiryDate() != null && driver.getLicenseExpiryDate().isBefore(LocalDate.now())) {
             throw new InvalidBookingException("Driver '" + driver.getUser().getFullName() + "' has an EXPIRED driving license");
         }
+    }
+
+    private Double calculateEstimatedDistance(Double lat1, Double lon1, Double lat2, Double lon2) {
+        if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) {
+            return 12.5; // Default fallback distance in km
+        }
+        final int R = 6371; // Radius of the earth in km
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double distance = R * c;
+        return Math.round(distance * 10.0) / 10.0;
+    }
+
+    private Double calculateEstimatedCost(Double distanceKm) {
+        if (distanceKm == null || distanceKm <= 0) {
+            return 150.0;
+        }
+        // Base fare ₹100 + ₹15 per km
+        double cost = 100.0 + (distanceKm * 15.0);
+        return Math.round(cost * 100.0) / 100.0;
     }
 
     private void validateVehicleEligibility(Vehicle vehicle) {
@@ -967,9 +1025,20 @@ public class RideServiceImpl implements RideService {
                 .destination(ride.getDestination())
                 .destinationLatitude(ride.getDestinationLatitude())
                 .destinationLongitude(ride.getDestinationLongitude())
+                .distanceKm(ride.getDistanceKm())
+                .estimatedCost(ride.getEstimatedCost())
+                .paymentStatus(ride.getPaymentStatus())
+                .paidAt(ride.getPaidAt())
+                .paymentReference(ride.getPaymentReference())
+                .approvedById(ride.getApprovedBy() != null ? ride.getApprovedBy().getId() : null)
+                .approvedByName(ride.getApprovedBy() != null ? ride.getApprovedBy().getFullName() : null)
+                .approvedAt(ride.getApprovedAt())
                 .bookingDate(ride.getBookingDate())
                 .pickupTime(ride.getPickupTime())
                 .bookingNotes(ride.getBookingNotes())
+                .riderType(ride.getRiderType() != null ? ride.getRiderType() : "SELF")
+                .riderName(ride.getRiderName() != null ? ride.getRiderName() : (ride.getEmployee() != null ? ride.getEmployee().getFullName() : null))
+                .riderPhone(ride.getRiderPhone() != null ? ride.getRiderPhone() : (ride.getEmployee() != null ? ride.getEmployee().getPhoneNumber() : null))
                 .status(ride.getStatus())
                 .cancellationReason(ride.getCancellationReason())
                 .cancelledAt(ride.getCancelledAt())
@@ -1025,6 +1094,20 @@ public class RideServiceImpl implements RideService {
                 .licenseExpiryDate(driver.getLicenseExpiryDate())
                 .driverStatus(driver.getDriverStatus())
                 .availabilityStatus(driver.getAvailabilityStatus())
+                .verificationStatus(driver.getVerificationStatus())
+                .vehiclePlateNumber(driver.getVehiclePlateNumber())
+                .vehicleModel(driver.getVehicleModel())
+                .documentUrl(driver.getDocumentUrl())
+                .insuranceNumber(driver.getInsuranceNumber())
+                .insuranceExpiryDate(driver.getInsuranceExpiryDate())
+                .bankAccountNumber(driver.getBankAccountNumber())
+                .bankIfscCode(driver.getBankIfscCode())
+                .bankAccountName(driver.getBankAccountName())
+                .upiId(driver.getUpiId())
+                .verifiedById(driver.getVerifiedBy() != null ? driver.getVerifiedBy().getId() : null)
+                .verifiedByName(driver.getVerifiedBy() != null ? driver.getVerifiedBy().getFullName() : null)
+                .verifiedAt(driver.getVerifiedAt())
+                .rejectionReason(driver.getRejectionReason())
                 .createdAt(driver.getCreatedAt())
                 .updatedAt(driver.getUpdatedAt())
                 .build();

@@ -22,12 +22,16 @@ export const DriverManagementPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [selectedAvailability, setSelectedAvailability] = useState('ALL');
+  const [selectedVerification, setSelectedVerification] = useState('ALL');
 
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
   const [viewingDriver, setViewingDriver] = useState(null);
   const [statusModalDriver, setStatusModalDriver] = useState(null);
+  const [verifyModalDriver, setVerifyModalDriver] = useState(null);
+  const [verificationNotes, setVerificationNotes] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
 
   // Form states
   const [formData, setFormData] = useState({
@@ -47,6 +51,26 @@ export const DriverManagementPage = () => {
 
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState(null);
+
+  const handleVerifyDriver = async (driverId, approved) => {
+    try {
+      setFormLoading(true);
+      setFormError(null);
+      await driverService.verifyDriver(driverId, {
+        approved,
+        rejectionReason: approved ? null : (rejectionReason || 'Document verification failed or expired'),
+        verificationNotes: verificationNotes || (approved ? 'All documents verified & approved' : null)
+      });
+      setVerifyModalDriver(null);
+      setRejectionReason('');
+      setVerificationNotes('');
+      fetchDrivers();
+    } catch (err) {
+      setFormError(err.message || 'Failed to update verification status');
+    } finally {
+      setFormLoading(false);
+    }
+  };
 
   const fetchDrivers = async () => {
     try {
@@ -440,8 +464,28 @@ export const DriverManagementPage = () => {
                   >
                     {driver.availabilityStatus.replace('_', ' ')}
                   </span>
+                  <span
+                    style={{
+                      fontSize: '0.725rem',
+                      fontWeight: 800,
+                      padding: '0.2rem 0.55rem',
+                      borderRadius: '6px',
+                      background: driver.verificationStatus === 'VERIFIED' ? '#dcfce7' : driver.verificationStatus === 'REJECTED' ? '#fee2e2' : '#fef3c7',
+                      color: driver.verificationStatus === 'VERIFIED' ? '#15803d' : driver.verificationStatus === 'REJECTED' ? '#b91c1c' : '#b45309',
+                      border: `1px solid ${driver.verificationStatus === 'VERIFIED' ? '#bbf7d0' : driver.verificationStatus === 'REJECTED' ? '#fecaca' : '#fde68a'}`,
+                    }}
+                  >
+                    {driver.verificationStatus === 'VERIFIED' ? '✓ Verified' : driver.verificationStatus === 'PENDING_VERIFICATION' ? '⏳ Pending Review' : driver.verificationStatus === 'REJECTED' ? '✕ Rejected' : '⚠ Unverified'}
+                  </span>
                 </div>
               </div>
+
+              {driver.vehiclePlateNumber && (
+                <div style={{ background: '#f8faf9', padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Plate: <strong style={{ color: '#0f2920' }}>{driver.vehiclePlateNumber}</strong> ({driver.vehicleModel || 'Vehicle'})</span>
+                  {driver.bankAccountNumber && <span style={{ color: '#2563eb', fontWeight: 700, fontSize: '0.75rem' }}>Bank Linked</span>}
+                </div>
+              )}
 
               {driver.isLicenseExpired && (
                 <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}>
@@ -465,7 +509,31 @@ export const DriverManagementPage = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1.5px solid #f1f5f9', paddingTop: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '0.5rem', borderTop: '1.5px solid #f1f5f9', paddingTop: '0.85rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVerifyModalDriver(driver);
+                    setRejectionReason('');
+                    setVerificationNotes('');
+                  }}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    background: driver.verificationStatus === 'VERIFIED' ? '#ecfdf5' : '#fffbeb',
+                    border: `1.5px solid ${driver.verificationStatus === 'VERIFIED' ? '#a7f3d0' : '#fde68a'}`,
+                    color: driver.verificationStatus === 'VERIFIED' ? '#059669' : '#b45309',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}
+                >
+                  <ShieldCheck size={14} />
+                  <span>Verify Docs</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setViewingDriver(driver)}
@@ -529,7 +597,7 @@ export const DriverManagementPage = () => {
                     boxShadow: '0 2px 10px rgba(19, 56, 44, 0.2)',
                   }}
                 >
-                  Status / Availability
+                  Status
                 </button>
               </div>
             </div>
@@ -966,6 +1034,151 @@ export const DriverManagementPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* VERIFY DOCUMENTS MODAL */}
+      {verifyModalDriver && (
+        <div className="modal-overlay" onClick={() => setVerifyModalDriver(null)}>
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '560px',
+              width: '100%',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '20px',
+              padding: '2rem',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.2)',
+              color: '#0f2920',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f2920', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ShieldCheck size={24} color="#059669" />
+                  <span>Verify Driver Documents</span>
+                </h2>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '2px' }}>
+                  Driver: <strong>{verifyModalDriver.fullName}</strong> ({verifyModalDriver.email})
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVerifyModalDriver(null)}
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {formError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '1rem', fontWeight: 700 }}>
+                ⚠️ {formError}
+              </div>
+            )}
+
+            {/* Document Inspection Card */}
+            <div style={{ background: '#f8faf9', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, display: 'block' }}>Driving License</span>
+                  <strong style={{ color: '#0f2920' }}>{verifyModalDriver.licenseNumber || 'Not provided'}</strong>
+                  <div style={{ fontSize: '0.75rem', color: verifyModalDriver.isLicenseExpired ? '#ef4444' : '#059669' }}>
+                    Exp: {verifyModalDriver.licenseExpiryDate || 'N/A'} {verifyModalDriver.isLicenseExpired ? '(EXPIRED)' : '(Valid)'}
+                  </div>
+                </div>
+
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, display: 'block' }}>Vehicle Plate & Model</span>
+                  <strong style={{ color: '#0f2920' }}>{verifyModalDriver.vehiclePlateNumber || 'Not provided'}</strong>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{verifyModalDriver.vehicleModel || 'Model unspecified'}</div>
+                </div>
+
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, display: 'block' }}>Insurance Policy</span>
+                  <strong style={{ color: '#0f2920' }}>{verifyModalDriver.insuranceNumber || 'Not provided'}</strong>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Exp: {verifyModalDriver.insuranceExpiryDate || 'N/A'}</div>
+                </div>
+
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, display: 'block' }}>Bank / UPI Payout Info</span>
+                  <strong style={{ color: '#0f2920' }}>{verifyModalDriver.bankAccountNumber ? `A/C: ${verifyModalDriver.bankAccountNumber}` : 'Bank not set'}</strong>
+                  <div style={{ fontSize: '0.75rem', color: '#2563eb' }}>{verifyModalDriver.upiId ? `UPI: ${verifyModalDriver.upiId}` : (verifyModalDriver.bankIfscCode ? `IFSC: ${verifyModalDriver.bankIfscCode}` : '')}</div>
+                </div>
+              </div>
+
+              {verifyModalDriver.documentUrl && (
+                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 800, display: 'block' }}>Uploaded Document Link</span>
+                  <a href={verifyModalDriver.documentUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 700, textDecoration: 'underline', wordBreak: 'break-all' }}>
+                    {verifyModalDriver.documentUrl}
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Rejection reason or Notes */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '4px' }}>
+                Manager Remarks / Rejection Reason (If rejecting)
+              </label>
+              <textarea
+                rows={2}
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="e.g. License photo is blurry, or vehicle plate does not match registration copy..."
+                style={{ width: '100%', padding: '0.65rem', border: '1.5px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                type="button"
+                disabled={formLoading}
+                onClick={() => handleVerifyDriver(verifyModalDriver.id, false)}
+                style={{
+                  padding: '0.65rem 1.25rem',
+                  borderRadius: '8px',
+                  background: '#fef2f2',
+                  border: '1.5px solid #fecaca',
+                  color: '#b91c1c',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                <XCircle size={16} />
+                <span>Reject Documents</span>
+              </button>
+              <button
+                type="button"
+                disabled={formLoading}
+                onClick={() => handleVerifyDriver(verifyModalDriver.id, true)}
+                style={{
+                  padding: '0.65rem 1.5rem',
+                  borderRadius: '8px',
+                  background: '#059669',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)'
+                }}
+              >
+                <CheckCircle size={16} />
+                <span>Approve & Verify Driver</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

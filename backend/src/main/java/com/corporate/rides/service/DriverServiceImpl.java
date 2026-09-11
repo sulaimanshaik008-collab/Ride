@@ -5,21 +5,24 @@ import com.corporate.rides.config.UserPrincipal;
 import com.corporate.rides.dto.*;
 import com.corporate.rides.entity.Driver;
 import com.corporate.rides.entity.Organization;
+import com.corporate.rides.entity.Ride;
 import com.corporate.rides.entity.User;
-import com.corporate.rides.enums.DriverAvailability;
-import com.corporate.rides.enums.DriverStatus;
-import com.corporate.rides.enums.UserRole;
+import com.corporate.rides.enums.*;
 import com.corporate.rides.exception.InvalidBookingException;
 import com.corporate.rides.exception.ResourceNotFoundException;
 import com.corporate.rides.exception.UnauthorizedAccessException;
 import com.corporate.rides.repository.DriverRepository;
 import com.corporate.rides.repository.OrganizationRepository;
+import com.corporate.rides.repository.RideRepository;
 import com.corporate.rides.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -31,6 +34,7 @@ public class DriverServiceImpl implements DriverService {
     private final DriverRepository driverRepository;
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
+    private final RideRepository rideRepository;
 
     @Override
     @Transactional
@@ -67,6 +71,7 @@ public class DriverServiceImpl implements DriverService {
                 .licenseExpiryDate(request.getLicenseExpiryDate())
                 .driverStatus(DriverStatus.ACTIVE)
                 .availabilityStatus(DriverAvailability.AVAILABLE)
+                .verificationStatus(DriverVerificationStatus.VERIFIED)
                 .build();
 
         Driver savedDriver = driverRepository.save(driver);
@@ -128,10 +133,232 @@ public class DriverServiceImpl implements DriverService {
                             .licenseExpiryDate(LocalDate.now().plusYears(3))
                             .driverStatus(DriverStatus.ACTIVE)
                             .availabilityStatus(DriverAvailability.AVAILABLE)
+                            .verificationStatus(DriverVerificationStatus.VERIFIED)
                             .build());
                 });
 
         return mapToDto(driver);
+    }
+
+    @Override
+    @Transactional
+    public DriverResponseDto updateSelfDriverDocuments(DriverDocumentUpdateDto request) {
+        UserPrincipal currentUser = getCurrentUserPrincipal();
+
+        Driver driver = driverRepository.findByUserId(currentUser.getUserId())
+                .orElseGet(() -> {
+                    User user = userRepository.findById(currentUser.getUserId())
+                            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                    return driverRepository.save(Driver.builder()
+                            .user(user)
+                            .organization(user.getOrganization())
+                            .licenseNumber(request.getLicenseNumber().trim())
+                            .licenseExpiryDate(request.getLicenseExpiryDate())
+                            .driverStatus(DriverStatus.ACTIVE)
+                            .availabilityStatus(DriverAvailability.AVAILABLE)
+                            .verificationStatus(DriverVerificationStatus.PENDING_VERIFICATION)
+                            .build());
+                });
+
+        if (driverRepository.existsByOrganizationIdAndLicenseNumberAndIdNot(
+                currentUser.getOrganizationId(), request.getLicenseNumber().trim(), driver.getId())) {
+            throw new InvalidBookingException("License number '" + request.getLicenseNumber() + "' is already assigned to another driver in this organization");
+        }
+
+        driver.setLicenseNumber(request.getLicenseNumber().trim());
+        driver.setLicenseExpiryDate(request.getLicenseExpiryDate());
+        if (request.getVehiclePlateNumber() != null) {
+            driver.setVehiclePlateNumber(request.getVehiclePlateNumber().trim());
+        }
+        if (request.getVehicleModel() != null) {
+            driver.setVehicleModel(request.getVehicleModel().trim());
+        }
+        if (request.getDocumentUrl() != null) {
+            driver.setDocumentUrl(request.getDocumentUrl().trim());
+        }
+        if (request.getInsuranceNumber() != null) {
+            driver.setInsuranceNumber(request.getInsuranceNumber().trim());
+        }
+        if (request.getInsuranceExpiryDate() != null) {
+            driver.setInsuranceExpiryDate(request.getInsuranceExpiryDate());
+        }
+        if (request.getBankAccountNumber() != null) {
+            driver.setBankAccountNumber(request.getBankAccountNumber().trim());
+        }
+        if (request.getBankIfscCode() != null) {
+            driver.setBankIfscCode(request.getBankIfscCode().trim());
+        }
+        if (request.getBankAccountName() != null) {
+            driver.setBankAccountName(request.getBankAccountName().trim());
+        }
+        if (request.getUpiId() != null) {
+            driver.setUpiId(request.getUpiId().trim());
+        }
+
+        driver.setVerificationStatus(DriverVerificationStatus.PENDING_VERIFICATION);
+        driver.setRejectionReason(null);
+
+        Driver updatedDriver = driverRepository.save(driver);
+        return mapToDto(updatedDriver);
+    }
+
+    @Override
+    @Transactional
+    public DriverResponseDto verifyDriverDocuments(UUID driverId, DriverVerificationDto request) {
+        UserPrincipal currentUser = getCurrentUserPrincipal();
+        verifyManagementRole(currentUser);
+
+        Driver driver = driverRepository.findByIdAndOrganizationId(driverId, currentUser.getOrganizationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Driver not found with ID: " + driverId));
+
+        User manager = userRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Manager user not found"));
+
+        if (Boolean.TRUE.equals(request.getApproved())) {
+            driver.setVerificationStatus(DriverVerificationStatus.VERIFIED);
+            driver.setDriverStatus(DriverStatus.ACTIVE);
+            driver.setRejectionReason(null);
+            driver.setVerifiedBy(manager);
+            driver.setVerifiedAt(OffsetDateTime.now());
+        } else {
+            driver.setVerificationStatus(DriverVerificationStatus.REJECTED);
+            driver.setRejectionReason(request.getRejectionReason() != null ? request.getRejectionReason().trim() : "Documents rejected by Transport Manager");
+            driver.setVerifiedBy(manager);
+            driver.setVerifiedAt(OffsetDateTime.now());
+        }
+
+        Driver savedDriver = driverRepository.save(driver);
+        return mapToDto(savedDriver);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DriverMonthlyPayoutDto getSelfDriverMonthlyPayout(String monthStr) {
+        UserPrincipal currentUser = getCurrentUserPrincipal();
+
+        Driver driver = driverRepository.findByUserId(currentUser.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Driver profile not found"));
+
+        return calculateMonthlyPayout(driver, monthStr);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DriverMonthlyPayoutDto> getAllDriversMonthlyPayouts(String monthStr) {
+        UserPrincipal currentUser = getCurrentUserPrincipal();
+        verifyManagementRole(currentUser);
+
+        List<Driver> drivers = driverRepository.findByOrganizationId(currentUser.getOrganizationId());
+        List<DriverMonthlyPayoutDto> payouts = new ArrayList<>();
+
+        for (Driver driver : drivers) {
+            payouts.add(calculateMonthlyPayout(driver, monthStr));
+        }
+
+        return payouts;
+    }
+
+    @Override
+    @Transactional
+    public DriverMonthlyPayoutDto processDriverMonthlyPayout(UUID driverId, ProcessPayoutRequestDto request) {
+        UserPrincipal currentUser = getCurrentUserPrincipal();
+        verifyManagementRole(currentUser);
+
+        Driver driver = driverRepository.findByIdAndOrganizationId(driverId, currentUser.getOrganizationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Driver not found with ID: " + driverId));
+
+        YearMonth ym = parseYearMonth(request.getMonth());
+        LocalDate startDate = ym.atDay(1);
+        LocalDate endDate = ym.atEndOfMonth();
+
+        List<Ride> completedRides = rideRepository.findCompletedDriverRidesInDateRange(driver.getId(), startDate, endDate);
+
+        if (completedRides.isEmpty()) {
+            throw new InvalidBookingException("No completed rides found for driver in month " + request.getMonth());
+        }
+
+        String ref = request.getPaymentReference() != null && !request.getPaymentReference().isBlank()
+                ? request.getPaymentReference().trim()
+                : "PAY-" + ym.toString() + "-" + driver.getId().toString().substring(0, 8).toUpperCase();
+
+        OffsetDateTime now = OffsetDateTime.now();
+        for (Ride r : completedRides) {
+            r.setPaymentStatus(PaymentStatus.PAID);
+            r.setPaidAt(now);
+            r.setPaymentReference(ref);
+            rideRepository.save(r);
+        }
+
+        return calculateMonthlyPayout(driver, request.getMonth());
+    }
+
+    private DriverMonthlyPayoutDto calculateMonthlyPayout(Driver driver, String monthStr) {
+        YearMonth ym = parseYearMonth(monthStr);
+        LocalDate startDate = ym.atDay(1);
+        LocalDate endDate = ym.atEndOfMonth();
+
+        List<Ride> rides = rideRepository.findCompletedDriverRidesInDateRange(driver.getId(), startDate, endDate);
+
+        long completedCount = rides.size();
+        double totalEarnings = 0.0;
+        double totalDistance = 0.0;
+        boolean allPaid = !rides.isEmpty();
+        OffsetDateTime lastPaidAt = null;
+        String payRef = null;
+
+        for (Ride r : rides) {
+            double cost = r.getEstimatedCost() != null ? r.getEstimatedCost() : calculateDefaultFare(r);
+            totalEarnings += cost;
+            if (r.getDistanceKm() != null) {
+                totalDistance += r.getDistanceKm();
+            }
+            if (r.getPaymentStatus() != PaymentStatus.PAID) {
+                allPaid = false;
+            } else {
+                lastPaidAt = r.getPaidAt();
+                payRef = r.getPaymentReference();
+            }
+        }
+
+        PaymentStatus status = rides.isEmpty() ? PaymentStatus.PENDING : (allPaid ? PaymentStatus.PAID : PaymentStatus.PENDING);
+
+        return DriverMonthlyPayoutDto.builder()
+                .driverId(driver.getId())
+                .driverName(driver.getUser().getFullName())
+                .driverPhone(driver.getUser().getPhoneNumber())
+                .driverEmail(driver.getUser().getEmail())
+                .licenseNumber(driver.getLicenseNumber())
+                .vehiclePlateNumber(driver.getVehiclePlateNumber())
+                .vehicleModel(driver.getVehicleModel())
+                .month(ym.toString())
+                .completedRidesCount(completedCount)
+                .totalEarnings(Math.round(totalEarnings * 100.0) / 100.0)
+                .totalDistanceKm(Math.round(totalDistance * 10.0) / 10.0)
+                .paymentStatus(status)
+                .paidAt(lastPaidAt)
+                .paymentReference(payRef)
+                .bankAccountNumber(driver.getBankAccountNumber())
+                .bankIfscCode(driver.getBankIfscCode())
+                .bankAccountName(driver.getBankAccountName())
+                .upiId(driver.getUpiId())
+                .build();
+    }
+
+    private YearMonth parseYearMonth(String monthStr) {
+        if (monthStr == null || monthStr.isBlank()) {
+            return YearMonth.now();
+        }
+        try {
+            return YearMonth.parse(monthStr.trim());
+        } catch (Exception e) {
+            return YearMonth.now();
+        }
+    }
+
+    private double calculateDefaultFare(Ride r) {
+        // Fallback calculation: base 100 + 15/km
+        double dist = r.getDistanceKm() != null ? r.getDistanceKm() : 8.5;
+        return 100.0 + (dist * 15.0);
     }
 
     @Override
@@ -244,6 +471,20 @@ public class DriverServiceImpl implements DriverService {
                 .isLicenseExpired(isExpired)
                 .driverStatus(driver.getDriverStatus())
                 .availabilityStatus(driver.getAvailabilityStatus())
+                .verificationStatus(driver.getVerificationStatus() != null ? driver.getVerificationStatus() : DriverVerificationStatus.VERIFIED)
+                .vehiclePlateNumber(driver.getVehiclePlateNumber())
+                .vehicleModel(driver.getVehicleModel())
+                .documentUrl(driver.getDocumentUrl())
+                .insuranceNumber(driver.getInsuranceNumber())
+                .insuranceExpiryDate(driver.getInsuranceExpiryDate())
+                .bankAccountNumber(driver.getBankAccountNumber())
+                .bankIfscCode(driver.getBankIfscCode())
+                .bankAccountName(driver.getBankAccountName())
+                .upiId(driver.getUpiId())
+                .verifiedById(driver.getVerifiedBy() != null ? driver.getVerifiedBy().getId() : null)
+                .verifiedByName(driver.getVerifiedBy() != null ? driver.getVerifiedBy().getFullName() : null)
+                .verifiedAt(driver.getVerifiedAt())
+                .rejectionReason(driver.getRejectionReason())
                 .createdAt(driver.getCreatedAt())
                 .updatedAt(driver.getUpdatedAt())
                 .build();

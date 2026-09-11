@@ -15,4 +15,13 @@ public interface DriverService {
     DriverResponseDto updateDriver(UUID driverId, UpdateDriverRequestDto request);
     DriverResponseDto updateDriverStatus(UUID driverId, UpdateDriverStatusRequestDto request);
     DriverResponseDto updateDriverAvailability(UUID driverId, UpdateDriverAvailabilityRequestDto request);
+
+    // Document Verification & Onboarding
+    DriverResponseDto updateSelfDriverDocuments(DriverDocumentUpdateDto request);
+    DriverResponseDto verifyDriverDocuments(UUID driverId, DriverVerificationDto request);
+
+    // Monthly Earnings & Payouts
+    DriverMonthlyPayoutDto getSelfDriverMonthlyPayout(String month);
+    List<DriverMonthlyPayoutDto> getAllDriversMonthlyPayouts(String month);
+    DriverMonthlyPayoutDto processDriverMonthlyPayout(UUID driverId, ProcessPayoutRequestDto request);
 }
