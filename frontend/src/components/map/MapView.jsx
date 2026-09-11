@@ -16,12 +16,19 @@ import {
   ArrowRight,
   Loader2,
   Check,
-  ChevronRight
+  ChevronRight,
+  Circle,
+  Square
 } from 'lucide-react';
 import { googleMapsService } from '../../services/googleMapsService';
 
 /**
- * Custom Directions Renderer Component with Solid Black Driving Route Line
+ * Standard Google Roadmap Style with Clean Roadways, Highway Badges (81, 44, 38, etc.), and Blue Water
+ */
+export const UBER_CITY_MAP_STYLE = [];
+
+/**
+ * Custom Directions & Route Polyline Renderer Component with Solid Black Driving Route Line
  */
 const DirectionsRenderer = ({
   pickupCoords,
@@ -31,6 +38,7 @@ const DirectionsRenderer = ({
   const map = useMap();
   const routesLib = useMapsLibrary('routes');
   const [directionsRenderer, setDirectionsRenderer] = useState(null);
+  const polylineRef = useRef(null);
 
   useEffect(() => {
     if (!routesLib || !map) return;
@@ -52,9 +60,23 @@ const DirectionsRenderer = ({
   }, [routesLib, map]);
 
   useEffect(() => {
+    // Clean up standalone polyline on unmount
+    return () => {
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+        polylineRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!pickupCoords || !destCoords) {
       if (directionsRenderer) {
         directionsRenderer.setDirections({ routes: [] });
+      }
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+        polylineRef.current = null;
       }
       onRouteCalculated(null);
       return;
@@ -69,9 +91,14 @@ const DirectionsRenderer = ({
 
         onRouteCalculated(directions);
 
-        if (directionsRenderer && directions?.rawResult) {
+        // 1. If DirectionsService returned raw result with routes, use standard DirectionsRenderer
+        if (directionsRenderer && directions?.rawResult?.routes?.length > 0) {
+          if (polylineRef.current) {
+            polylineRef.current.setMap(null);
+            polylineRef.current = null;
+          }
           directionsRenderer.setDirections(directions.rawResult);
-          if (directions.rawResult.routes?.[0]?.bounds && map) {
+          if (directions.rawResult.routes[0]?.bounds && map) {
             map.fitBounds(directions.rawResult.routes[0].bounds, {
               top: 80,
               bottom: 80,
@@ -79,9 +106,34 @@ const DirectionsRenderer = ({
               right: 80,
             });
           }
-        } else if (map && directions?.bounds) {
-          const [[minLng, minLat], [maxLng, maxLat]] = directions.bounds;
-          if (window.google?.maps?.LatLngBounds) {
+        } 
+        // 2. Otherwise (or as robust polyline overlay), render direct Polyline coordinates
+        else if (map && directions?.coordinates && directions.coordinates.length > 0) {
+          if (directionsRenderer) {
+            directionsRenderer.setDirections({ routes: [] });
+          }
+
+          const pathLatLngs = directions.coordinates.map((c) => ({
+            lat: c[1],
+            lng: c[0],
+          }));
+
+          if (polylineRef.current) {
+            polylineRef.current.setPath(pathLatLngs);
+            polylineRef.current.setMap(map);
+          } else if (window.google?.maps?.Polyline) {
+            polylineRef.current = new window.google.maps.Polyline({
+              path: pathLatLngs,
+              geodesic: true,
+              strokeColor: '#000000',
+              strokeOpacity: 0.95,
+              strokeWeight: 6,
+              map: map,
+            });
+          }
+
+          if (directions?.bounds && window.google?.maps?.LatLngBounds) {
+            const [[minLng, minLat], [maxLng, maxLat]] = directions.bounds;
             const bounds = new window.google.maps.LatLngBounds(
               { lat: minLat, lng: minLng },
               { lat: maxLat, lng: maxLng }
@@ -118,7 +170,7 @@ const MapBoundsManager = ({ pickupCoords, destCoords }) => {
         const bounds = new window.google.maps.LatLngBounds();
         bounds.extend({ lat: pickupCoords[1], lng: pickupCoords[0] });
         bounds.extend({ lat: destCoords[1], lng: destCoords[0] });
-        map.fitBounds(bounds, { top: 70, bottom: 70, left: 60, right: 60 });
+        map.fitBounds(bounds, { top: 80, bottom: 80, left: 80, right: 80 });
       }
     } else if (pickupCoords) {
       map.panTo({ lat: pickupCoords[1], lng: pickupCoords[0] });
@@ -253,7 +305,8 @@ export const MapView = ({
 
   const formatShortAddress = (addr, prefix) => {
     if (!addr) return prefix;
-    const short = addr.length > 26 ? addr.substring(0, 24) + '...' : addr;
+    const clean = addr.split(',')[0].trim();
+    const short = clean.length > 22 ? clean.substring(0, 20) + '...' : clean;
     return `${prefix} ${short}`;
   };
 
@@ -262,13 +315,11 @@ export const MapView = ({
       className={`map-wrapper ${className}`}
       style={{
         position: 'relative',
-        borderRadius: '20px',
+        borderRadius: '16px',
         overflow: 'hidden',
-        border: '1px solid var(--border-glass, rgba(255, 255, 255, 0.12))',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
         background: '#e5e7eb',
         height: '100%',
-        minHeight: '480px',
+        width: '100%',
         ...styleOverrides,
       }}
     >
@@ -306,13 +357,15 @@ export const MapView = ({
         libraries={['places', 'routes', 'geometry', 'marker']}
       >
         <Map
-          style={{ width: '100%', height: '100%', minHeight: styleOverrides.height || '540px' }}
+          style={{ width: '100%', height: '100%' }}
           defaultCenter={mapCenter}
           defaultZoom={zoom}
+          defaultMapTypeId="roadmap"
+          mapTypeId="roadmap"
           gestureHandling="greedy"
           disableDefaultUI={false}
         >
-          {/* Pickup Marker with Uber Callout */}
+          {/* Pickup Marker with Uber Callout Bubble */}
           {pickupLat !== undefined && pickupLng !== undefined && (
             <>
               <Marker
@@ -332,29 +385,37 @@ export const MapView = ({
               <InfoWindow
                 position={{ lat: pickupLat, lng: pickupLng }}
                 headerDisabled={true}
-                pixelOffset={[0, -22]}
+                pixelOffset={[0, -20]}
               >
                 <div
+                  className="uber-map-callout"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.35rem 0.6rem',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    padding: '0.5rem 0.75rem',
                     background: '#ffffff',
                     color: '#000000',
                     fontWeight: 700,
-                    fontSize: '0.825rem',
+                    fontSize: '0.9rem',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.18)',
                     cursor: 'pointer',
+                    minWidth: '150px',
+                    maxWidth: '220px',
                   }}
                 >
-                  <span>{formatShortAddress(pickupLocation?.address, 'From')}</span>
-                  <ChevronRight size={14} />
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {formatShortAddress(pickupLocation?.address, 'From')}
+                  </span>
+                  <ChevronRight size={16} color="#000000" style={{ flexShrink: 0 }} />
                 </div>
               </InfoWindow>
             </>
           )}
 
-          {/* Destination Marker with Uber Callout */}
+          {/* Destination Marker with Uber Callout Bubble */}
           {destLat !== undefined && destLng !== undefined && (
             <>
               <Marker
@@ -363,7 +424,7 @@ export const MapView = ({
                 onDragEnd={handleDestinationDragEnd}
                 title="Destination Location"
                 icon={{
-                  path: 'M -5,-5 L 5,-5 L 5,5 L -5,5 Z', // Square
+                  path: 'M -6,-6 L 6,-6 L 6,6 L -6,6 Z', // Crisp square icon
                   scale: 1,
                   fillColor: '#000000',
                   fillOpacity: 1,
@@ -374,23 +435,31 @@ export const MapView = ({
               <InfoWindow
                 position={{ lat: destLat, lng: destLng }}
                 headerDisabled={true}
-                pixelOffset={[0, -22]}
+                pixelOffset={[0, -20]}
               >
                 <div
+                  className="uber-map-callout"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.35rem 0.6rem',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    padding: '0.5rem 0.75rem',
                     background: '#ffffff',
                     color: '#000000',
                     fontWeight: 700,
-                    fontSize: '0.825rem',
+                    fontSize: '0.9rem',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.18)',
                     cursor: 'pointer',
+                    minWidth: '150px',
+                    maxWidth: '220px',
                   }}
                 >
-                  <span>{formatShortAddress(destinationLocation?.address, 'To')}</span>
-                  <ChevronRight size={14} />
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {formatShortAddress(destinationLocation?.address, 'To')}
+                  </span>
+                  <ChevronRight size={16} color="#000000" style={{ flexShrink: 0 }} />
                 </div>
               </InfoWindow>
             </>

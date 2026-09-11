@@ -95,7 +95,7 @@ export const App = () => {
         element={
           <div className="app-container">
             <Navbar />
-            <main className="main-content">
+            <main className={`main-content ${location.pathname === '/book-ride' ? 'book-ride-main' : ''}`}>
               <Routes>
                 <Route path="/book-ride" element={<BookRidePage />} />
                 <Route path="/my-rides" element={<MyRidesPage />} />

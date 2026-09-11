@@ -27,6 +27,7 @@ import { rideService } from '../services/rideService';
 import { useAuth } from '../context/AuthContext';
 import { MapView } from '../components/map/MapView';
 import { LocationSearchInput } from '../components/map/LocationSearchInput';
+import { RiderSelectionModal } from '../components/RiderSelectionModal';
 
 const PRESET_LOCATIONS = [
   { name: '35/1, Muniyandi Kovil Ln, near Saravana Multi-Speciality Hospital Pvt Ltd', coordinates: [78.1198, 9.9252] },
@@ -114,8 +115,12 @@ export const BookRidePage = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
-  const [riderName, setRiderName] = useState('For me');
-  const [showRiderDropdown, setShowRiderDropdown] = useState(false);
+  const [selectedRider, setSelectedRider] = useState({
+    type: 'SELF',
+    name: 'For me',
+    phone: '',
+  });
+  const [showRiderModal, setShowRiderModal] = useState(false);
   const [selectionMode, setSelectionMode] = useState('PICKUP');
 
   const [routeDetails, setRouteDetails] = useState(null);
@@ -195,6 +200,10 @@ export const BookRidePage = () => {
       setLoading(true);
       setError(null);
 
+      const notesSuffix = selectedRider.type === 'COLLEAGUE'
+        ? ` [Passenger: ${selectedRider.name} (${selectedRider.phone})] (${selectedTier})`
+        : ` (${selectedTier})`;
+
       const payload = {
         pickupLocation: pickup.address.trim(),
         destination: destination.address.trim(),
@@ -204,7 +213,10 @@ export const BookRidePage = () => {
         destinationLongitude: destination.coordinates ? destination.coordinates[0] : 78.6856,
         bookingDate: isScheduled ? bookingDate : todayStr,
         pickupTime: isScheduled ? pickupTime : new Date().toTimeString().slice(0, 5),
-        bookingNotes: bookingNotes.trim() ? `${bookingNotes.trim()} (${selectedTier})` : `Tier: ${selectedTier}`,
+        bookingNotes: bookingNotes.trim() ? `${bookingNotes.trim()}${notesSuffix}` : `Tier: ${selectedTier}${selectedRider.type === 'COLLEAGUE' ? ` - Passenger: ${selectedRider.name} (${selectedRider.phone})` : ''}`,
+        riderType: selectedRider.type,
+        riderName: selectedRider.type === 'COLLEAGUE' ? selectedRider.name : (currentUser?.fullName || 'Self'),
+        riderPhone: selectedRider.type === 'COLLEAGUE' ? selectedRider.phone : (currentUser?.phoneNumber || ''),
       };
 
       const ride = await rideService.createRide(payload);
@@ -249,7 +261,7 @@ export const BookRidePage = () => {
           /* ==========================================================================
              UBER SCHEDULING VIEW ("When do you want to be picked up?")
              ========================================================================== */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Header with Circle Back Button & Clear */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <button
@@ -257,6 +269,7 @@ export const BookRidePage = () => {
                 onClick={() => setPanelView('main')}
                 className="uber-circle-btn"
                 aria-label="Go back to booking"
+                style={{ background: '#f3f4f6', border: 'none', color: '#000000' }}
               >
                 <ArrowLeft size={18} />
               </button>
@@ -265,6 +278,7 @@ export const BookRidePage = () => {
                 type="button"
                 onClick={handleClearSchedule}
                 className="uber-text-btn"
+                style={{ color: '#000000', fontWeight: 600 }}
               >
                 Clear
               </button>
@@ -272,10 +286,10 @@ export const BookRidePage = () => {
 
             {/* Title & Pickup Location Subtitle */}
             <div>
-              <h1 className="uber-title" style={{ fontSize: '1.85rem', marginBottom: '0.45rem' }}>
+              <h1 className="uber-title" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>
                 When do you want to be picked up?
               </h1>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted, #9ca3af)', margin: 0, lineHeight: 1.4 }}>
+              <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: 0, lineHeight: 1.4 }}>
                 From {pickup.address || 'Pickup location'}
               </p>
             </div>
@@ -285,15 +299,14 @@ export const BookRidePage = () => {
               <div
                 className="uber-select-box"
                 onClick={() => setShowDatePicker(!showDatePicker)}
-                style={{ padding: '0.9rem 1.1rem' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                  <Calendar size={18} style={{ color: 'var(--text-main, #ffffff)' }} />
-                  <span style={{ fontSize: '1.05rem', fontWeight: 700 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Calendar size={18} style={{ color: '#000000' }} />
+                  <span style={{ fontSize: '0.92rem', fontWeight: 600 }}>
                     {formatDisplayDate(bookingDate)}
                   </span>
                 </div>
-                <ChevronDown size={18} style={{ transform: showDatePicker ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                <ChevronDown size={18} style={{ transform: showDatePicker ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: '#000000' }} />
               </div>
 
               {showDatePicker && (
@@ -304,14 +317,14 @@ export const BookRidePage = () => {
                     left: 0,
                     right: 0,
                     zIndex: 30,
-                    background: 'var(--bg-card, #14171b)',
-                    border: '1px solid var(--border-glass, rgba(255, 255, 255, 0.15))',
+                    background: '#ffffff',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '12px',
                     padding: '1rem',
-                    boxShadow: '0 10px 35px rgba(0,0,0,0.5)',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
                   }}
                 >
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'block' }}>
+                  <label style={{ fontSize: '0.8rem', color: '#4b5563', marginBottom: '0.4rem', display: 'block', fontWeight: 600 }}>
                     Select Pickup Date
                   </label>
                   <input
@@ -323,7 +336,7 @@ export const BookRidePage = () => {
                       setBookingDate(e.target.value);
                       setShowDatePicker(false);
                     }}
-                    style={{ minHeight: '44px' }}
+                    style={{ minHeight: '44px', background: '#f9fafb', color: '#000000', border: '1px solid #d1d5db' }}
                   />
                 </div>
               )}
@@ -334,15 +347,14 @@ export const BookRidePage = () => {
               <div
                 className="uber-select-box"
                 onClick={() => setShowTimePicker(!showTimePicker)}
-                style={{ padding: '0.9rem 1.1rem' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                  <Clock size={18} style={{ color: 'var(--text-main, #ffffff)' }} />
-                  <span style={{ fontSize: '1.05rem', fontWeight: 700 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Clock size={18} style={{ color: '#000000' }} />
+                  <span style={{ fontSize: '0.92rem', fontWeight: 600 }}>
                     {formatDisplayTime(pickupTime)}
                   </span>
                 </div>
-                <ChevronDown size={18} style={{ transform: showTimePicker ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                <ChevronDown size={18} style={{ transform: showTimePicker ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: '#000000' }} />
               </div>
 
               {showTimePicker && (
@@ -355,11 +367,11 @@ export const BookRidePage = () => {
                     zIndex: 30,
                     maxHeight: '220px',
                     overflowY: 'auto',
-                    background: 'var(--bg-card, #14171b)',
-                    border: '1px solid var(--border-glass, rgba(255, 255, 255, 0.15))',
+                    background: '#ffffff',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '12px',
                     padding: '0.5rem',
-                    boxShadow: '0 10px 35px rgba(0,0,0,0.5)',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
                   }}
                 >
                   {timeSlots.map((slot) => (
@@ -370,17 +382,18 @@ export const BookRidePage = () => {
                         setPickupTime(slot.value);
                         setShowTimePicker(false);
                       }}
-                      className="btn btn-secondary"
                       style={{
                         width: '100%',
                         textAlign: 'left',
                         padding: '0.55rem 0.75rem',
                         fontSize: '0.85rem',
                         fontWeight: pickupTime === slot.value ? 700 : 500,
-                        background: pickupTime === slot.value ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                        background: pickupTime === slot.value ? '#f3f4f6' : 'transparent',
+                        color: '#000000',
                         border: 'none',
                         borderRadius: '8px',
                         marginBottom: '2px',
+                        cursor: 'pointer',
                       }}
                     >
                       {slot.label}
@@ -391,24 +404,24 @@ export const BookRidePage = () => {
             </div>
 
             {/* FEATURE BULLETS / VALUE PROPOSITIONS */}
-            <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column' }}>
-              <div className="uber-schedule-feature-item">
-                <Calendar size={20} style={{ color: 'var(--text-main, #ffffff)', flexShrink: 0, marginTop: '2px' }} />
-                <span style={{ fontSize: '0.92rem', color: 'var(--text-main, #ffffff)', lineHeight: 1.4 }}>
+            <div style={{ marginTop: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.4rem 0' }}>
+                <Calendar size={18} style={{ color: '#000000', flexShrink: 0, marginTop: '2px' }} />
+                <span style={{ fontSize: '0.85rem', color: '#374151', lineHeight: 1.4 }}>
                   Choose your pickup time up to 30 days in advance
                 </span>
               </div>
 
-              <div className="uber-schedule-feature-item">
-                <Hourglass size={20} style={{ color: 'var(--text-main, #ffffff)', flexShrink: 0, marginTop: '2px' }} />
-                <span style={{ fontSize: '0.92rem', color: 'var(--text-main, #ffffff)', lineHeight: 1.4 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.4rem 0' }}>
+                <Hourglass size={18} style={{ color: '#000000', flexShrink: 0, marginTop: '2px' }} />
+                <span style={{ fontSize: '0.85rem', color: '#374151', lineHeight: 1.4 }}>
                   Extra wait time included to meet your ride
                 </span>
               </div>
 
-              <div className="uber-schedule-feature-item">
-                <CreditCard size={20} style={{ color: 'var(--text-main, #ffffff)', flexShrink: 0, marginTop: '2px' }} />
-                <span style={{ fontSize: '0.92rem', color: 'var(--text-main, #ffffff)', lineHeight: 1.4 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.4rem 0' }}>
+                <CreditCard size={18} style={{ color: '#000000', flexShrink: 0, marginTop: '2px' }} />
+                <span style={{ fontSize: '0.85rem', color: '#374151', lineHeight: 1.4 }}>
                   Cancel at no charge up to 60 minutes in advance
                 </span>
               </div>
@@ -419,7 +432,7 @@ export const BookRidePage = () => {
               type="button"
               onClick={handleConfirmSchedule}
               className="uber-search-btn"
-              style={{ marginTop: '1rem' }}
+              style={{ marginTop: 'auto' }}
             >
               Set pickup time
             </button>
@@ -433,132 +446,113 @@ export const BookRidePage = () => {
 
             {/* PROMO / POLICY VOUCHER PILL */}
             <div className="uber-promo-pill">
-              <Tag size={15} color="#10b981" />
-              <span>100% off your next ride. Up to ₹35 per ride</span>
-              <Info size={14} style={{ cursor: 'pointer', opacity: 0.8 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Tag size={15} color="#059669" style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>100% off your next ride. Up to ₹35 pe...</span>
+              </div>
+              <Info size={15} color="#059669" style={{ cursor: 'pointer', flexShrink: 0 }} />
             </div>
 
             {error && (
-              <div className="alert alert-error" role="alert" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 0.85rem' }}>
-                <AlertCircle size={16} />
-                <span style={{ fontSize: '0.85rem' }}>{error}</span>
+              <div className="alert alert-error" role="alert" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
+                <AlertCircle size={15} />
+                <span style={{ fontSize: '0.82rem' }}>{error}</span>
               </div>
             )}
 
-            {/* PICKUP LOCATION INPUT */}
-            <div>
-              <LocationSearchInput
-                id="uber-pickup-input"
-                label="Pickup location"
-                placeholder="Search pickup (e.g. Trichy, Chennai Central...)"
-                value={pickup.address}
-                onChange={(val) => {
-                  setPickup((prev) => ({ ...prev, address: val }));
-                  if (!val || val.trim() === '') {
-                    setPickup({ address: '', coordinates: null, placeId: null });
-                    setRouteDetails(null);
+            {/* PICKUP LOCATION BAR */}
+            <LocationSearchInput
+              id="uber-pickup-input"
+              variant="uber"
+              placeholder="Pickup location"
+              value={pickup.address}
+              onChange={(val) => {
+                setPickup((prev) => ({ ...prev, address: val }));
+                if (!val || val.trim() === '') {
+                  setPickup({ address: '', coordinates: null, placeId: null });
+                  setRouteDetails(null);
+                }
+              }}
+              onSelectLocation={(loc) => {
+                if (loc) {
+                  setPickup({ address: loc.address, coordinates: loc.coordinates, placeId: loc.placeId });
+                  setSelectionMode('DESTINATION');
+                  if (destination.coordinates) {
+                    setRouteCalculating(true);
                   }
-                }}
-                onSelectLocation={(loc) => {
-                  if (loc) {
-                    setPickup({ address: loc.address, coordinates: loc.coordinates, placeId: loc.placeId });
-                    setSelectionMode('DESTINATION');
-                    if (destination.coordinates) {
-                      setRouteCalculating(true);
-                    }
-                  } else {
-                    setPickup({ address: '', coordinates: null, placeId: null });
-                    setRouteDetails(null);
-                  }
-                }}
-                iconType="pickup"
-              />
-            </div>
+                } else {
+                  setPickup({ address: '', coordinates: null, placeId: null });
+                  setRouteDetails(null);
+                }
+              }}
+              iconType="pickup"
+            />
 
-            {/* DESTINATION LOCATION INPUT */}
-            <div>
-              <LocationSearchInput
-                id="uber-destination-input"
-                label="Destination"
-                placeholder="Search destination (e.g. Airport, Railway Station...)"
-                value={destination.address}
-                onChange={(val) => {
-                  setDestination((prev) => ({ ...prev, address: val }));
-                  if (!val || val.trim() === '') {
-                    setDestination({ address: '', coordinates: null, placeId: null });
-                    setRouteDetails(null);
+            {/* DROPOFF LOCATION BAR */}
+            <LocationSearchInput
+              id="uber-destination-input"
+              variant="uber"
+              placeholder="Dropoff location"
+              value={destination.address}
+              showAddStop={true}
+              onChange={(val) => {
+                setDestination((prev) => ({ ...prev, address: val }));
+                if (!val || val.trim() === '') {
+                  setDestination({ address: '', coordinates: null, placeId: null });
+                  setRouteDetails(null);
+                }
+              }}
+              onSelectLocation={(loc) => {
+                if (loc) {
+                  setDestination({ address: loc.address, coordinates: loc.coordinates, placeId: loc.placeId });
+                  setSelectionMode(null);
+                  if (pickup.coordinates) {
+                    setRouteCalculating(true);
                   }
-                }}
-                onSelectLocation={(loc) => {
-                  if (loc) {
-                    setDestination({ address: loc.address, coordinates: loc.coordinates, placeId: loc.placeId });
-                    setSelectionMode(null);
-                    if (pickup.coordinates) {
-                      setRouteCalculating(true);
-                    }
-                  } else {
-                    setDestination({ address: '', coordinates: null, placeId: null });
-                    setRouteDetails(null);
-                  }
-                }}
-                iconType="destination"
-              />
-            </div>
+                } else {
+                  setDestination({ address: '', coordinates: null, placeId: null });
+                  setRouteDetails(null);
+                }
+              }}
+              iconType="destination"
+            />
 
             {/* LIVE DRIVING ROUTE ESTIMATE STRIP */}
             {pickup.coordinates && destination.coordinates && (
               <div
                 style={{
-                  padding: '0.75rem 1rem',
-                  borderRadius: '12px',
-                  background: 'rgba(16, 185, 129, 0.1)',
-                  border: '1.5px solid rgba(16, 185, 129, 0.3)',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: '8px',
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <div
-                    style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '8px',
-                      background: '#164032',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#ffffff',
-                    }}
-                  >
-                    <Navigation size={14} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
-                      Road Route Calculated
-                    </div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f2920' }}>
-                      {routeDetails ? (
-                        <>
-                          <span>{routeDetails.distanceText}</span>
-                          <span style={{ margin: '0 0.35rem', color: '#94a3b8' }}>&bull;</span>
-                          <span style={{ color: '#059669' }}>{routeDetails.durationText}</span>
-                        </>
-                      ) : (
-                        <span style={{ color: '#059669' }}>Finding best route...</span>
-                      )}
-                    </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Navigation size={14} color="#059669" />
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#065f46' }}>
+                    {routeDetails ? (
+                      <>
+                        <span>{routeDetails.distanceText}</span>
+                        <span style={{ margin: '0 0.35rem', color: '#86efac' }}>&bull;</span>
+                        <span>{routeDetails.durationText}</span>
+                      </>
+                    ) : (
+                      <span>Calculating route...</span>
+                    )}
                   </div>
                 </div>
 
                 <span
                   style={{
-                    fontSize: '0.7rem',
+                    fontSize: '0.68rem',
                     fontWeight: 800,
-                    padding: '0.25rem 0.55rem',
-                    borderRadius: '6px',
-                    background: 'rgba(16, 185, 129, 0.2)',
-                    color: '#047857',
+                    padding: '0.15rem 0.45rem',
+                    borderRadius: '4px',
+                    background: '#dcfce7',
+                    color: '#15803d',
                   }}
                 >
                   DRIVING
@@ -566,95 +560,37 @@ export const BookRidePage = () => {
               </div>
             )}
 
-            {/* PICKUP TIME SELECTOR (Opens Uber Scheduling View) */}
+            {/* PICKUP TIME BAR */}
             <div
               className="uber-select-box"
               onClick={() => setPanelView('schedule')}
-              style={{ cursor: 'pointer' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Clock size={16} color="#164032" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <Clock size={18} color="#000000" strokeWidth={2.5} />
                 <span>
                   {isScheduled
                     ? `${formatDisplayDate(bookingDate)}, ${formatDisplayTime(pickupTime)}`
                     : 'Pickup now'}
                 </span>
               </div>
-              <ChevronDown size={16} />
+              <ChevronDown size={18} color="#000000" />
             </div>
 
-            {/* RIDER SELECTION PILL */}
-            <div style={{ position: 'relative' }}>
+            {/* RIDER SELECTION PILL ("For me" button) */}
+            <div>
               <button
                 type="button"
                 className="uber-pill-btn"
-                onClick={() => setShowRiderDropdown(!showRiderDropdown)}
+                onClick={() => setShowRiderModal(true)}
               >
-                <User size={15} color="#164032" />
-                <span>{riderName}</span>
-                <ChevronDown size={14} />
+                <User size={15} color="#000000" strokeWidth={2.5} />
+                <span>
+                  {selectedRider.type === 'COLLEAGUE'
+                    ? `For ${selectedRider.name}`
+                    : 'For me'}
+                </span>
+                <ChevronDown size={14} color="#000000" />
               </button>
-
-              {showRiderDropdown && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '110%',
-                    left: 0,
-                    zIndex: 20,
-                    background: '#ffffff',
-                    border: '1.5px solid #e2e8f0',
-                    borderRadius: '12px',
-                    padding: '0.45rem',
-                    boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.25rem',
-                    minWidth: '180px',
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRiderName('For me');
-                      setShowRiderDropdown(false);
-                    }}
-                    style={{
-                      textAlign: 'left',
-                      padding: '0.5rem 0.75rem',
-                      fontSize: '0.825rem',
-                      fontWeight: 600,
-                      color: '#0f172a',
-                      background: riderName === 'For me' ? 'rgba(22, 64, 50, 0.08)' : 'transparent',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    👤 For me ({currentUser?.fullName || 'Self'})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRiderName('For Colleague');
-                      setShowRiderDropdown(false);
-                    }}
-                    style={{
-                      textAlign: 'left',
-                      padding: '0.5rem 0.75rem',
-                      fontSize: '0.825rem',
-                      fontWeight: 600,
-                      color: '#0f172a',
-                      background: riderName === 'For Colleague' ? 'rgba(22, 64, 50, 0.08)' : 'transparent',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    👥 For Colleague / Guest
-                  </button>
-                </div>
-              )}
             </div>
 
             {/* PRIMARY "SEARCH" ACTION BUTTON */}
@@ -684,9 +620,20 @@ export const BookRidePage = () => {
           onClearAll={handleClearAll}
           showControls={true}
           showRouteInfo={true}
-          styleOverrides={{ height: '100%', minHeight: '560px' }}
+          styleOverrides={{ height: '100%', minHeight: '100%', borderRadius: '16px' }}
         />
       </div>
+
+      {/* CHOOSE A RIDER / NEW RIDER MODAL */}
+      <RiderSelectionModal
+        isOpen={showRiderModal}
+        onClose={() => setShowRiderModal(false)}
+        selectedRider={selectedRider}
+        onSelectRider={(rider) => {
+          setSelectedRider(rider);
+          setShowRiderModal(false);
+        }}
+      />
 
       {/* CONFIRMATION SUCCESS MODAL (Centered with full black overlay) */}
       {confirmedRide && (
@@ -753,6 +700,19 @@ export const BookRidePage = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Rider Info Badge */}
+              {confirmedRide.riderType === 'COLLEAGUE' && (
+                <div style={{ borderTop: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.06))', paddingTop: '0.6rem' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>Booked For Colleague:</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '2px' }}>
+                    <span>👤 {confirmedRide.riderName}</span>
+                    {confirmedRide.riderPhone && (
+                      <span style={{ color: '#94a3b8', fontSize: '0.82rem', fontWeight: 600 }}>({confirmedRide.riderPhone})</span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div style={{ borderTop: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.06))', paddingTop: '0.6rem' }}>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>Pickup Location:</div>
