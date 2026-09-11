@@ -359,7 +359,7 @@ export const RideSchedulingPage = () => {
                       <span style={{ color: '#64748b' }}>Destination: <strong style={{ color: '#0f2920' }}>{ride.destination}</strong></span>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1.5rem', color: '#64748b', background: '#f8faf9', border: '1.5px solid #e2e8f0', padding: '0.65rem 0.85rem', borderRadius: '10px' }}>
+                    <div style={{ display: 'flex', gap: '1.5rem', color: '#64748b', background: '#f8faf9', border: '1.5px solid #e2e8f0', padding: '0.65rem 0.85rem', borderRadius: '10px', flexWrap: 'wrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         <Calendar size={14} color="#2563eb" />
                         <span>Date: <strong style={{ color: '#0f2920' }}>{ride.bookingDate}</strong></span>
@@ -368,6 +368,11 @@ export const RideSchedulingPage = () => {
                         <Clock size={14} color="#d97706" />
                         <span>Requested: <strong style={{ color: '#0f2920' }}>{ride.pickupTime}</strong></span>
                       </div>
+                      {ride.estimatedCost != null && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <span>Estimated Fare: <strong style={{ color: '#059669', fontSize: '0.9rem' }}>₹{ride.estimatedCost}</strong> ({ride.distanceKm || '12.5'} km)</span>
+                        </div>
+                      )}
                     </div>
 
                     {ride.bookingNotes && (

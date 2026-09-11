@@ -301,7 +301,7 @@ export const ManagerRideRequestsPage = () => {
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.825rem', color: '#0f2920', marginTop: '2px', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.825rem', color: '#0f2920', marginTop: '2px', fontWeight: 600, flexWrap: 'wrap' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                       <MapPin size={14} color="#059669" /> {ride.pickupLocation}
                     </span>
@@ -309,6 +309,11 @@ export const ManagerRideRequestsPage = () => {
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                       <MapPin size={14} color="#2563eb" /> {ride.destination}
                     </span>
+                    {ride.estimatedCost != null && (
+                      <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#059669', padding: '2px 8px', borderRadius: '6px', fontWeight: 800, fontSize: '0.75rem' }}>
+                        ₹{ride.estimatedCost} ({ride.distanceKm || '12.5'} km)
+                      </span>
+                    )}
                   </div>
                 </div>
 

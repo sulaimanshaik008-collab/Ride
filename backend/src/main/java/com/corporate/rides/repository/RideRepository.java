@@ -155,4 +155,24 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
             @Param("from") LocalDate from,
             @Param("to") LocalDate to
     );
+
+    @Query("SELECT r FROM Ride r WHERE r.driver.id = :driverId " +
+           "AND r.status = com.corporate.rides.enums.RideStatus.COMPLETED " +
+           "AND r.bookingDate >= :startDate AND r.bookingDate <= :endDate " +
+           "ORDER BY r.bookingDate DESC")
+    List<Ride> findCompletedDriverRidesInDateRange(
+            @Param("driverId") UUID driverId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    @Query("SELECT r FROM Ride r WHERE r.organization.id = :orgId " +
+           "AND r.status = com.corporate.rides.enums.RideStatus.COMPLETED " +
+           "AND r.bookingDate >= :startDate AND r.bookingDate <= :endDate " +
+           "ORDER BY r.bookingDate DESC")
+    List<Ride> findCompletedOrganizationRidesInDateRange(
+            @Param("orgId") UUID orgId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 }

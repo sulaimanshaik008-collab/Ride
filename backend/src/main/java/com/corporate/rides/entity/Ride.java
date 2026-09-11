@@ -67,6 +67,16 @@ public class Ride {
     @Column(name = "booking_notes", length = 500)
     private String bookingNotes;
 
+    @Column(name = "rider_type", length = 30)
+    @Builder.Default
+    private String riderType = "SELF";
+
+    @Column(name = "rider_name", length = 100)
+    private String riderName;
+
+    @Column(name = "rider_phone", length = 30)
+    private String riderPhone;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private RideStatus status;
@@ -106,6 +116,30 @@ public class Ride {
     @Column(name = "completion_remarks", length = 500)
     private String completionRemarks;
 
+    @Column(name = "estimated_cost")
+    private Double estimatedCost;
+
+    @Column(name = "distance_km")
+    private Double distanceKm;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", length = 30)
+    @Builder.Default
+    private com.corporate.rides.enums.PaymentStatus paymentStatus = com.corporate.rides.enums.PaymentStatus.PENDING;
+
+    @Column(name = "paid_at")
+    private OffsetDateTime paidAt;
+
+    @Column(name = "payment_reference", length = 100)
+    private String paymentReference;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "approved_by_id")
+    private User approvedBy;
+
+    @Column(name = "approved_at")
+    private OffsetDateTime approvedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -121,6 +155,9 @@ public class Ride {
         updatedAt = now;
         if (status == null) {
             status = RideStatus.PENDING_APPROVAL;
+        }
+        if (paymentStatus == null) {
+            paymentStatus = com.corporate.rides.enums.PaymentStatus.PENDING;
         }
     }
 

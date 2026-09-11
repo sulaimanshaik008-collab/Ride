@@ -33,6 +33,9 @@ public class RideResponseDto {
     private LocalDate bookingDate;
     private LocalTime pickupTime;
     private String bookingNotes;
+    private String riderType;
+    private String riderName;
+    private String riderPhone;
     private RideStatus status;
 
     // Feature 5 — Assignment details
@@ -57,6 +60,17 @@ public class RideResponseDto {
     private String completionRemarks;
     private Boolean isDriverAccepted;
     private Boolean isEmployeeVerified;
+
+    // Financial, Approval & Payout details
+    private Double estimatedCost;
+    private Double distanceKm;
+    private com.corporate.rides.enums.PaymentStatus paymentStatus;
+    private OffsetDateTime paidAt;
+    private String paymentReference;
+    private UUID approvedById;
+    private String approvedByName;
+    private OffsetDateTime approvedAt;
+
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

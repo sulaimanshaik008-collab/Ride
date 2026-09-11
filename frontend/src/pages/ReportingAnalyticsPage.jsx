@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, TrendingUp, Users, Car, MapPin, Clock, 
-  Download, Calendar, AlertCircle, CheckCircle2, ShieldAlert, Sparkles, RefreshCw, ChevronDown 
+  Download, Calendar, AlertCircle, CheckCircle2, ShieldAlert, Sparkles, RefreshCw, ChevronDown, CreditCard, DollarSign 
 } from 'lucide-react';
 import { analyticsService } from '../services/analyticsService';
+import { driverService } from '../services/driverService';
 import { useAuth } from '../context/AuthContext';
 
 export const ReportingAnalyticsPage = () => {
@@ -19,7 +20,7 @@ export const ReportingAnalyticsPage = () => {
   const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   // Tab
-  const [activeTab, setActiveTab] = useState('overview'); // overview, rides, drivers, vehicles, routes, capacity, insights
+  const [activeTab, setActiveTab] = useState('overview'); // overview, payouts, drivers, vehicles, routes, capacity, insights
 
   // Data states
   const [overview, setOverview] = useState(null);
@@ -30,6 +31,10 @@ export const ReportingAnalyticsPage = () => {
   const [peakHours, setPeakHours] = useState([]);
   const [capacityStats, setCapacityStats] = useState([]);
   const [insights, setInsights] = useState([]);
+  const [monthlyPayouts, setMonthlyPayouts] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [payoutLoading, setPayoutLoading] = useState(false);
+  const [payoutSuccessMsg, setPayoutSuccessMsg] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -84,11 +89,44 @@ export const ReportingAnalyticsPage = () => {
     }
   };
 
+  const fetchMonthlyPayouts = async (month) => {
+    try {
+      setPayoutLoading(true);
+      const data = await driverService.getMonthlyPayouts(month || selectedMonth);
+      setMonthlyPayouts(data || []);
+    } catch (err) {
+      console.error('Failed to load monthly payouts:', err);
+    } finally {
+      setPayoutLoading(false);
+    }
+  };
+
+  const handleProcessPayout = async (driverId, amount) => {
+    try {
+      setPayoutLoading(true);
+      setPayoutSuccessMsg('');
+      const ref = 'TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+      await driverService.processDriverPayout(driverId, {
+        month: selectedMonth,
+        amount: amount,
+        paymentReference: ref,
+        notes: `End-of-month driver settlement for ${selectedMonth}`
+      });
+      setPayoutSuccessMsg(`Successfully credited ₹${amount.toLocaleString()} to driver account (Ref: ${ref})`);
+      fetchMonthlyPayouts(selectedMonth);
+    } catch (err) {
+      setError(err.message || 'Failed to process driver payout');
+    } finally {
+      setPayoutLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (currentUser) {
       fetchAllAnalytics();
+      fetchMonthlyPayouts(selectedMonth);
     }
-  }, [currentUser, fromDate, toDate]);
+  }, [currentUser, fromDate, toDate, selectedMonth]);
 
   const handleExportCsv = () => {
     const params = new URLSearchParams({ from: fromDate, to: toDate }).toString();
@@ -294,6 +332,7 @@ export const ReportingAnalyticsPage = () => {
       <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1.5px solid #e2e8f0', overflowX: 'auto', paddingBottom: '0.75rem' }}>
         {[
           { id: 'overview', label: 'Ride Trends & Status', icon: BarChart3 },
+          { id: 'payouts', label: 'Driver Monthly Payouts', icon: CreditCard },
           { id: 'insights', label: 'Intelligent Insights', icon: Sparkles },
           { id: 'drivers', label: 'Driver Performance', icon: Users },
           { id: 'vehicles', label: 'Vehicle Utilization', icon: Car },
@@ -638,6 +677,163 @@ export const ReportingAnalyticsPage = () => {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT: DRIVER MONTHLY PAYOUTS & SETTLEMENT */}
+      {activeTab === 'payouts' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Month Selector Bar */}
+          <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <CreditCard size={22} color="#059669" />
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f2920', margin: 0 }}>
+                  End-of-Month Driver Payouts & Settlement
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  Verify completed rides, review accumulated driver earnings, and credit driver bank/UPI accounts.
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#334155' }}>Settlement Month:</span>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{ padding: '0.5rem 0.85rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.875rem', fontWeight: 700 }}
+              />
+              <button
+                type="button"
+                onClick={() => fetchMonthlyPayouts(selectedMonth)}
+                style={{ padding: '0.55rem 1rem', borderRadius: '8px', background: '#059669', color: '#ffffff', border: 'none', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem' }}
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {payoutSuccessMsg && (
+            <div style={{ background: '#ecfdf5', border: '1.5px solid #a7f3d0', color: '#047857', padding: '0.85rem 1.25rem', borderRadius: '12px', fontSize: '0.875rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <CheckCircle2 size={18} />
+              <span>{payoutSuccessMsg}</span>
+            </div>
+          )}
+
+          {/* Payouts Table */}
+          <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '20px', padding: '1.75rem', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)' }}>
+            <h4 style={{ fontSize: '1rem', fontWeight: 900, color: '#0f2920', margin: '0 0 1rem 0' }}>
+              Driver Earnings Summary for {selectedMonth}
+            </h4>
+
+            {payoutLoading ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                <RefreshCw size={28} className="spin-animation" style={{ margin: '0 auto 0.75rem', color: '#059669' }} />
+                <div>Loading monthly driver payout calculations...</div>
+              </div>
+            ) : monthlyPayouts.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                <Users size={36} color="#94a3b8" style={{ margin: '0 auto 0.75rem' }} />
+                <div style={{ fontWeight: 800, color: '#0f2920' }}>No active driver records found for this period</div>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                      <th style={{ padding: '0.75rem 1rem' }}>Driver Partner</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Vehicle & Plate</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Completed Rides</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Total Earnings</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Settlement Status</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Bank / UPI Account</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthlyPayouts.map((p) => {
+                      const isPaid = p.paymentStatus === 'PAID';
+                      return (
+                        <tr key={p.driverId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '1rem', fontWeight: 800, color: '#0f2920' }}>
+                            <div>{p.driverName}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>DL: {p.licenseNumber || 'N/A'}</div>
+                          </td>
+                          <td style={{ padding: '1rem', color: '#334155' }}>
+                            <div style={{ fontWeight: 700 }}>{p.vehiclePlateNumber || 'Not assigned'}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{p.vehicleModel || ''}</div>
+                          </td>
+                          <td style={{ padding: '1rem', fontWeight: 800, color: '#0f2920' }}>
+                            {p.totalRides} trips
+                          </td>
+                          <td style={{ padding: '1rem', fontWeight: 900, color: '#059669', fontSize: '1rem' }}>
+                            ₹{(p.totalEarnings || 0).toLocaleString()}
+                          </td>
+                          <td style={{ padding: '1rem' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '3px 10px',
+                              borderRadius: '12px',
+                              fontSize: '0.75rem',
+                              fontWeight: 800,
+                              background: isPaid ? '#dcfce7' : '#fef3c7',
+                              color: isPaid ? '#15803d' : '#b45309',
+                              border: `1px solid ${isPaid ? '#bbf7d0' : '#fde68a'}`
+                            }}>
+                              {isPaid ? '✓ Paid & Credited' : 'Pending Payment'}
+                            </span>
+                            {p.paidAt && (
+                              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
+                                Ref: {p.paymentReference || 'Direct'}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: '1rem', fontSize: '0.8rem', color: '#475569' }}>
+                            {p.bankAccountNumber ? (
+                              <div>
+                                <div><strong>A/C:</strong> {p.bankAccountNumber}</div>
+                                <div><strong>IFSC:</strong> {p.bankIfscCode || 'N/A'}</div>
+                              </div>
+                            ) : (
+                              <div>{p.upiId ? `UPI: ${p.upiId}` : 'Not linked'}</div>
+                            )}
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'right' }}>
+                            {isPaid ? (
+                              <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 800 }}>Settled ✓</span>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={payoutLoading || p.totalEarnings <= 0}
+                                onClick={() => handleProcessPayout(p.driverId, p.totalEarnings)}
+                                style={{
+                                  padding: '0.5rem 1rem',
+                                  borderRadius: '8px',
+                                  background: p.totalEarnings > 0 ? 'linear-gradient(180deg, #184738 0%, #103327 100%)' : '#e2e8f0',
+                                  color: p.totalEarnings > 0 ? '#ffffff' : '#94a3b8',
+                                  border: 'none',
+                                  fontWeight: 800,
+                                  fontSize: '0.8rem',
+                                  cursor: p.totalEarnings > 0 ? 'pointer' : 'not-allowed',
+                                  boxShadow: p.totalEarnings > 0 ? '0 2px 10px rgba(19, 56, 44, 0.25)' : 'none'
+                                }}
+                              >
+                                Credit Driver Account
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

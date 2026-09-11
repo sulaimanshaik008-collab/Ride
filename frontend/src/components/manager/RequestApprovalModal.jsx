@@ -161,6 +161,29 @@ export const RequestApprovalModal = ({ isOpen, onClose, ride, onDecisionSuccess 
             </div>
           </div>
 
+          {/* Ride Cost Calculation for Manager Review */}
+          <div style={{
+            background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+            border: '1.5px solid #86efac',
+            borderRadius: '10px',
+            padding: '0.75rem 1rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.72rem', color: '#166534', fontWeight: 800, textTransform: 'uppercase' }}>
+                Estimated Corporate Fare ({ride.distanceKm || '12.5'} km)
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 600 }}>
+                Base Fare + Rate per km
+              </div>
+            </div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#14532d' }}>
+              ₹{ride.estimatedCost != null ? ride.estimatedCost.toLocaleString() : '287.50'}
+            </div>
+          </div>
+
           {ride.bookingNotes && (
             <div style={{ fontSize: '0.775rem', color: '#475569', fontStyle: 'italic' }}>
               Notes: "{ride.bookingNotes}"

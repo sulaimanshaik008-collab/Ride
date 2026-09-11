@@ -23,6 +23,8 @@ import {
   Compass,
   AlertCircle,
   Phone,
+  DollarSign,
+  CreditCard,
 } from 'lucide-react';
 import { rideService } from '../../services/rideService';
 import { driverService } from '../../services/driverService';
@@ -37,6 +39,7 @@ export const DriverDashboardPage = () => {
   const [assignedRides, setAssignedRides] = useState([]);
   const [todayRides, setTodayRides] = useState([]);
   const [driverProfile, setDriverProfile] = useState(null);
+  const [monthlyEarnings, setMonthlyEarnings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState(null);
@@ -70,15 +73,17 @@ export const DriverDashboardPage = () => {
       setLoading(true);
       setErrorMsg(null);
 
-      const [assignedData, todayData, profileData] = await Promise.all([
+      const [assignedData, todayData, profileData, earningsData] = await Promise.all([
         rideService.getDriverAssignedTrips(),
         rideService.getDriverTodayRides(),
         driverService.getSelfDriverProfile().catch(() => null),
+        driverService.getSelfMonthlyEarnings().catch(() => null),
       ]);
 
       setAssignedRides(assignedData || []);
       setTodayRides(todayData || []);
       setDriverProfile(profileData);
+      setMonthlyEarnings(earningsData);
 
       // Handle GPS streaming for active in-progress ride
       const activeTrip = (assignedData || []).find((r) => r.status === 'IN_PROGRESS');
@@ -976,6 +981,40 @@ export const DriverDashboardPage = () => {
                 </div>
                 <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f2920', marginTop: '4px' }}>
                   {todayRides.length}
+                </div>
+              </div>
+            </div>
+
+            {/* Monthly Earnings & Payout Summary */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0f2920 0%, #184738 100%)',
+              borderRadius: '14px',
+              padding: '1.1rem',
+              color: '#ffffff',
+              marginBottom: '1rem',
+              boxShadow: '0 4px 15px rgba(15, 41, 32, 0.15)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <div style={{ fontSize: '0.75rem', color: '#6ee7b7', fontWeight: 800, textTransform: 'uppercase' }}>
+                  Month-End Earnings ({monthlyEarnings?.month || new Date().toISOString().slice(0, 7)})
+                </div>
+                <span style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  background: monthlyEarnings?.paymentStatus === 'PAID' ? '#10b981' : 'rgba(255,255,255,0.2)',
+                  color: '#ffffff'
+                }}>
+                  {monthlyEarnings?.paymentStatus === 'PAID' ? '✓ Credited' : 'Pending Settlement'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                <div style={{ fontSize: '1.65rem', fontWeight: 900 }}>
+                  ₹{(monthlyEarnings?.totalEarnings || 0).toLocaleString()}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>
+                  ({monthlyEarnings?.totalRides || 0} rides completed)
                 </div>
               </div>
             </div>
