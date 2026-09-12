@@ -24,6 +24,7 @@ public class DriverResponseDto {
     private String fullName;
     private String email;
     private String phoneNumber;
+    private String profileImageUrl;
     private String department;
     private String licenseNumber;
     private LocalDate licenseExpiryDate;

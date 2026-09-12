@@ -465,6 +465,7 @@ public class DriverServiceImpl implements DriverService {
                 .fullName(driver.getUser().getFullName())
                 .email(driver.getUser().getEmail())
                 .phoneNumber(driver.getUser().getPhoneNumber())
+                .profileImageUrl(driver.getUser().getProfileImageUrl())
                 .department(driver.getUser().getDepartment())
                 .licenseNumber(driver.getLicenseNumber())
                 .licenseExpiryDate(driver.getLicenseExpiryDate())
