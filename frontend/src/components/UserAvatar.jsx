@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import maleAvatarImg from '../assets/male-avatar.png';
 import femaleAvatarImg from '../assets/female-avatar.png';
 
 export const UserAvatar = ({ user, size = 36, className = '' }) => {
+  const [imgError, setImgError] = useState(false);
   const name = (user?.fullName || user?.email || '').toLowerCase();
   
   // Female personas detection (Sarah, Eleanor, Sophia, Elena, etc.)
@@ -21,7 +22,8 @@ export const UserAvatar = ({ user, size = 36, className = '' }) => {
     name.includes('maria') ||
     name.includes('clara');
 
-  const avatarSrc = isFemale ? femaleAvatarImg : maleAvatarImg;
+  const defaultAvatar = isFemale ? femaleAvatarImg : maleAvatarImg;
+  const avatarSrc = (!imgError && user?.profileImageUrl) ? user.profileImageUrl : defaultAvatar;
 
   return (
     <div
@@ -43,6 +45,7 @@ export const UserAvatar = ({ user, size = 36, className = '' }) => {
       <img
         src={avatarSrc}
         alt={user?.fullName || (isFemale ? 'Female Employee Profile' : 'Male Employee Profile')}
+        onError={() => setImgError(true)}
         style={{
           width: '100%',
           height: '100%',

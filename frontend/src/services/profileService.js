@@ -1,4 +1,4 @@
-import { apiFetch } from './api';
+import { apiFetch, getCurrentUserEmailHeader } from './api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
@@ -22,7 +22,7 @@ export const profileService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const currentUserEmail = localStorage.getItem('user_email') || '';
+    const currentUserEmail = getCurrentUserEmailHeader();
     const url = `${API_BASE_URL}/profile/avatar`;
 
     const response = await fetch(url, {

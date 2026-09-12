@@ -12,16 +12,18 @@ export const setCurrentUserEmailHeader = (email) => {
   }
 };
 
-export const getCurrentUserEmailHeader = () => currentUserEmail;
+export const getCurrentUserEmailHeader = () => currentUserEmail || localStorage.getItem('user_email') || '';
 
 export const apiFetch = async (endpoint, options = {}) => {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${API_BASE_URL}${cleanEndpoint}`;
 
+  const activeEmail = getCurrentUserEmailHeader();
+
   const headers = {
     'Content-Type': 'application/json',
-    'X-User-Email': currentUserEmail,
-    'Authorization': `Bearer ${currentUserEmail}`,
+    'X-User-Email': activeEmail,
+    'Authorization': `Bearer ${activeEmail}`,
     ...(options.headers || {}),
   };
 
