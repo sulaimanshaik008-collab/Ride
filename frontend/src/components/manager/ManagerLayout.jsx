@@ -25,6 +25,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { rideService } from '../../services/rideService';
 import { notificationService } from '../../services/notificationService';
+import { UserAvatar } from '../UserAvatar';
 
 export const ManagerLayout = () => {
   const { currentUser, logout, theme, toggleTheme } = useAuth();
@@ -374,22 +375,7 @@ export const ManagerLayout = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden' }}>
-              <div
-                style={{
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(145deg, #184738 0%, #103327 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: '0.8rem',
-                  color: '#ffffff',
-                }}
-              >
-                {currentUser?.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'M'}
-              </div>
+              <UserAvatar user={currentUser} size={34} />
               <div style={{ overflow: 'hidden' }}>
                 <div
                   style={{

@@ -61,8 +61,8 @@ export const ManagerDashboardPage = () => {
         rideService.getPendingAssignmentRides().catch(() => []),
         rideService.getActiveTrips().catch(() => []),
         rideService.getScheduledRides().catch(() => []),
-        driverService.searchDrivers().catch(() => []),
-        vehicleService.searchVehicles().catch(() => []),
+        driverService.getDrivers().catch(() => []),
+        vehicleService.getVehicles().catch(() => []),
       ]);
 
       setSchedulableRides(schedulable || []);

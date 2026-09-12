@@ -40,8 +40,8 @@ export const ManagerAssignmentsPage = () => {
       const [pendingAssign, scheduled, drvList, vehList] = await Promise.all([
         rideService.getPendingAssignmentRides().catch(() => []),
         rideService.getScheduledRides().catch(() => []),
-        driverService.searchDrivers().catch(() => []),
-        vehicleService.searchVehicles().catch(() => []),
+        driverService.getDrivers().catch(() => []),
+        vehicleService.getVehicles().catch(() => []),
       ]);
 
       const map = new Map();

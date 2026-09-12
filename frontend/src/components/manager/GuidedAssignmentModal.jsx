@@ -59,8 +59,8 @@ export const GuidedAssignmentModal = ({ isOpen, onClose, ride, onAssignmentSucce
       } catch {
         // Fallback to searching all active & available drivers/vehicles
         const [drvList, vehList] = await Promise.all([
-          driverService.searchDrivers({ status: 'ACTIVE', availability: 'AVAILABLE' }).catch(() => []),
-          vehicleService.searchVehicles({ status: 'ACTIVE', availability: 'AVAILABLE' }).catch(() => []),
+          driverService.getDrivers({ status: 'ACTIVE', availability: 'AVAILABLE' }).catch(() => []),
+          vehicleService.getVehicles({ status: 'ACTIVE', availability: 'AVAILABLE' }).catch(() => []),
         ]);
         eligibleDrivers = drvList || [];
         eligibleVehicles = vehList || [];
