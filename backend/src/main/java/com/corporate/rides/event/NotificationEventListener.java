@@ -103,14 +103,15 @@ public class NotificationEventListener {
                 case DRIVER_ASSIGNED -> {
                     String driverName = ride.getDriver() != null ? ride.getDriver().getUser().getFullName() : "a driver";
                     String vehicleReg = ride.getVehicle() != null ? ride.getVehicle().getRegistrationNumber() : "a vehicle";
+                    String otpText = ride.getStartOtp() != null ? " Your pickup OTP is: " + ride.getStartOtp() + "." : "";
 
                     // Notify Employee
                     dispatchDualNotification(
                             ride.getEmployee(),
                             ride,
                             NotificationType.DRIVER_ASSIGNED,
-                            "Driver & Vehicle Assigned",
-                            "Driver " + driverName + " and Vehicle " + vehicleReg + " have been assigned to your scheduled ride (" + ride.getBookingReference() + ")."
+                            "Ride Allocated: Driver & Vehicle Assigned",
+                            "Vehicle " + vehicleReg + " and Driver " + driverName + " have been allocated to your ride (" + ride.getBookingReference() + ")." + otpText + " Share this OTP with the driver at pickup to start your ride."
                     );
 
                     // Notify Driver

@@ -440,6 +440,20 @@ public class RideServiceImpl implements RideService {
         ride.setVehicle(vehicle);
         ride.setStatus(RideStatus.ASSIGNED);
 
+        // Generate 4-digit verification OTP and compose SMS notification
+        String startOtp = String.format("%04d", java.util.concurrent.ThreadLocalRandom.current().nextInt(1000, 10000));
+        ride.setStartOtp(startOtp);
+
+        String driverName = driver.getUser() != null ? driver.getUser().getFullName() : "Assigned Driver";
+        String driverPhone = (driver.getUser() != null && driver.getUser().getPhoneNumber() != null) ? driver.getUser().getPhoneNumber() : "N/A";
+        String vehicleReg = vehicle.getRegistrationNumber();
+        String vehicleModel = ((vehicle.getMake() != null ? vehicle.getMake() : "") + " " + (vehicle.getModel() != null ? vehicle.getModel() : "")).trim();
+
+        String smsText = String.format("[RideFlow] Ride Allocation Confirmed! Vehicle: %s (%s). Driver: %s (%s). Your pickup OTP is: %s. Share this OTP with your driver at pickup to start the ride.",
+                vehicleReg, vehicleModel, driverName, driverPhone, startOtp);
+        ride.setSmsContent(smsText);
+        ride.setSmsSentAt(OffsetDateTime.now());
+
         Ride updatedRide = rideRepository.save(ride);
 
         User actor = userRepository.findById(currentUser.getUserId()).orElse(null);
@@ -855,6 +869,7 @@ public class RideServiceImpl implements RideService {
         User assignedEmployee = ride.getEmployee();
         String inputIdentifier = request.getEmployeeIdentifier().trim().toLowerCase();
 
+        boolean isOtpMatch = ride.getStartOtp() != null && ride.getStartOtp().trim().equalsIgnoreCase(request.getEmployeeIdentifier().trim());
         boolean isEmailMatch = assignedEmployee.getEmail() != null && assignedEmployee.getEmail().trim().toLowerCase().equals(inputIdentifier);
         boolean isPhoneMatch = (assignedEmployee.getPhoneNumber() != null && (
                 assignedEmployee.getPhoneNumber().replaceAll("[^0-9]", "").contains(inputIdentifier.replaceAll("[^0-9]", ""))
@@ -867,9 +882,9 @@ public class RideServiceImpl implements RideService {
                 || (ride.getRiderName() != null && ride.getRiderName().trim().equalsIgnoreCase(request.getEmployeeIdentifier().trim()));
         boolean isBadgeMatch = inputIdentifier.startsWith("emp-") || inputIdentifier.startsWith("emp_") || inputIdentifier.equalsIgnoreCase(assignedEmployee.getId().toString().substring(0, 8));
 
-        // Accept email, full name, phone number, or employee badge match
-        if (!isEmailMatch && !isPhoneMatch && !isNameMatch && !isBadgeMatch) {
-            throw new InvalidBookingException("Employee verification failed: Identifier '" + request.getEmployeeIdentifier() + "' does not match scheduled passenger '" + assignedEmployee.getFullName() + "' (" + assignedEmployee.getEmail() + ")");
+        // Accept OTP (primary secure method), or email, full name, phone number, or employee badge match
+        if (!isOtpMatch && !isEmailMatch && !isPhoneMatch && !isNameMatch && !isBadgeMatch) {
+            throw new InvalidBookingException("Employee verification failed: Identifier/OTP '" + request.getEmployeeIdentifier() + "' does not match scheduled passenger '" + assignedEmployee.getFullName() + "'. Please enter the 4-digit SMS OTP.");
         }
 
         ride.setEmployeeVerifiedAt(OffsetDateTime.now());
@@ -1051,6 +1066,9 @@ public class RideServiceImpl implements RideService {
                 .completionRemarks(ride.getCompletionRemarks())
                 .isDriverAccepted(ride.getDriverAcceptedAt() != null)
                 .isEmployeeVerified(ride.getEmployeeVerifiedAt() != null)
+                .startOtp(ride.getStartOtp())
+                .smsSentAt(ride.getSmsSentAt())
+                .smsContent(ride.getSmsContent())
                 .createdAt(ride.getCreatedAt())
                 .updatedAt(ride.getUpdatedAt());
 
