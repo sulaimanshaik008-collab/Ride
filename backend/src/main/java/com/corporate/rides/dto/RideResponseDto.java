@@ -61,6 +61,10 @@ public class RideResponseDto {
     private Boolean isDriverAccepted;
     private Boolean isEmployeeVerified;
 
+    private String startOtp;
+    private OffsetDateTime smsSentAt;
+    private String smsContent;
+
     // Financial, Approval & Payout details
     private Double estimatedCost;
     private Double distanceKm;

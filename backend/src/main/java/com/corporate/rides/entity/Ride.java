@@ -116,6 +116,15 @@ public class Ride {
     @Column(name = "completion_remarks", length = 500)
     private String completionRemarks;
 
+    @Column(name = "start_otp", length = 10)
+    private String startOtp;
+
+    @Column(name = "sms_sent_at")
+    private OffsetDateTime smsSentAt;
+
+    @Column(name = "sms_content", length = 1000)
+    private String smsContent;
+
     @Column(name = "estimated_cost")
     private Double estimatedCost;
 
