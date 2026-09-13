@@ -234,10 +234,10 @@ export const DriverDashboardPage = () => {
     }
   };
 
-  // ACTION: Verify Employee
+  // ACTION: Verify Employee OTP
   const handleVerifyEmployee = async () => {
     if (!verifyModalRide || !verificationInput.trim()) {
-      setVerificationError('Please enter the employee ID, email, or name to verify.');
+      setVerificationError('Please enter the 4-digit pickup OTP (or Employee ID/Email) to verify.');
       return;
     }
     try {
@@ -249,11 +249,11 @@ export const DriverDashboardPage = () => {
         setVerifyModalRide(null);
         setVerificationSuccess(false);
         setVerificationInput('');
-        setFeedbackMsg(`Employee verified successfully. You may now start the ride.`);
+        setFeedbackMsg(`Passenger OTP verified successfully! You may now start the ride.`);
         await fetchDashboardData();
       }, 1200);
     } catch (err) {
-      setVerificationError(err.message || 'Employee could not be verified. Please check info and try again.');
+      setVerificationError(err.message || 'OTP verification failed. Please ask passenger for the 4-digit OTP sent via SMS.');
     } finally {
       setActionLoading(false);
     }
@@ -1181,22 +1181,34 @@ export const DriverDashboardPage = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.75rem' }}>
               <ShieldCheck size={26} color="#059669" />
               <h3 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0f2920', margin: 0 }}>
-                Employee Identity Verification
+                Verify Passenger Pickup OTP
               </h3>
             </div>
 
             <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.25rem' }}>
-              Ask the employee for their Corporate Employee ID, Name, or Email to verify they are authorized for this ride.
+              Ask the employee passenger for their <strong>4-digit Pickup OTP</strong> sent to their registered mobile phone via SMS upon ride allocation.
             </p>
 
             <div style={{ background: '#f8faf9', padding: '1rem', borderRadius: '12px', marginBottom: '1.25rem', border: '1.5px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>Expected Passenger</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>Expected Passenger</div>
+                {verifyModalRide.riderPhone && (
+                  <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
+                    SMS Sent to {verifyModalRide.riderPhone}
+                  </span>
+                )}
+              </div>
               <div style={{ fontSize: '1rem', fontWeight: 900, color: '#0f2920', marginTop: '2px' }}>
                 {verifyModalRide.employeeName}
               </div>
               <div style={{ fontSize: '0.825rem', color: '#2563eb', fontWeight: 600 }}>
                 {verifyModalRide.employeeEmail}
               </div>
+              {verifyModalRide.vehicleRegistration && (
+                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed #cbd5e1', fontSize: '0.775rem', color: '#475569' }}>
+                  Allocated Vehicle: <strong>{verifyModalRide.vehicleRegistration}</strong> ({verifyModalRide.vehicleMakeModel || 'Assigned Cab'})
+                </div>
+              )}
             </div>
 
             {verificationError && (
@@ -1208,29 +1220,33 @@ export const DriverDashboardPage = () => {
             {verificationSuccess && (
               <div style={{ background: '#ecfdf5', border: '1.5px solid #a7f3d0', color: '#059669', padding: '0.65rem 0.85rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.85rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                 <CheckCircle2 size={16} />
-                <span>Employee Verified Successfully!</span>
+                <span>Passenger OTP Verified Successfully! Ride Unlocked.</span>
               </div>
             )}
 
             <div style={{ marginBottom: '1.25rem' }}>
               <label style={{ display: 'block', fontSize: '0.775rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '6px' }}>
-                Enter Employee ID or Email
+                Enter 4-Digit Pickup OTP (or Employee Email/ID)
               </label>
               <input
                 type="text"
                 value={verificationInput}
                 onChange={(e) => setVerificationInput(e.target.value)}
-                placeholder="e.g. employee.acme@corporate.com or EMP-1024"
+                placeholder="e.g. 4829"
+                maxLength={30}
+                autoFocus
                 style={{
                   width: '100%',
                   background: '#ffffff',
-                  border: '1.5px solid #e2e8f0',
-                  borderRadius: '8px',
-                  padding: '0.75rem',
+                  border: '2px solid #059669',
+                  borderRadius: '10px',
+                  padding: '0.75rem 1rem',
                   color: '#0f172a',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
+                  fontSize: '1.15rem',
+                  fontWeight: 800,
+                  letterSpacing: '2px',
                   outline: 'none',
+                  textAlign: 'center',
                 }}
               />
             </div>
@@ -1266,7 +1282,7 @@ export const DriverDashboardPage = () => {
                   boxShadow: '0 4px 12px rgba(19, 56, 44, 0.25)',
                 }}
               >
-                {actionLoading ? 'Verifying...' : 'Validate & Verify'}
+                {actionLoading ? 'Verifying OTP...' : 'Verify OTP & Start Trip'}
               </button>
             </div>
           </div>
