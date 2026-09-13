@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Calendar, Clock, MapPin, Navigation, XCircle, Eye, AlertTriangle, RefreshCw, Car, X, Phone, User } from 'lucide-react';
+import { Search, Calendar, Clock, MapPin, Navigation, XCircle, Eye, AlertTriangle, RefreshCw, Car, X, Phone, User, ShieldCheck, Smartphone } from 'lucide-react';
 import { rideService } from '../services/rideService';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
@@ -265,55 +265,157 @@ export const MyRidesPage = () => {
                 )}
               </div>
 
-              {/* ASSIGNED DRIVER CONTACT CARD (FEATURE 11 PART A & I) */}
-              {ride.driverName && (
+              {/* ASSIGNED DRIVER & VEHICLE ALLOCATION CARD WITH VEHICLE PLATE & OTP */}
+              {(ride.driverName || ride.vehicleRegistration || ride.startOtp) && (
                 <div
                   style={{
                     background: '#f0fdf4',
                     border: '1.5px solid #bbf7d0',
-                    borderRadius: '12px',
-                    padding: '0.75rem 1rem',
+                    borderRadius: '14px',
+                    padding: '0.9rem 1.1rem',
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
+                    flexDirection: 'column',
                     gap: '0.75rem',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
-                      <Car size={18} />
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '0.75rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                        <Car size={20} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#14532d' }}>
+                          {ride.driverName || 'Assigned Driver'}
+                        </div>
+                        <div style={{ fontSize: '0.775rem', color: '#166534', fontWeight: 600 }}>
+                          {ride.vehicleMakeModel || 'Assigned Cab'}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: '0.875rem', fontWeight: 800, color: '#14532d' }}>
-                        {ride.driverName}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 600 }}>
-                        {ride.vehicleMakeModel || 'Assigned Vehicle'} &bull; {ride.vehicleRegistration || 'Standard'}
-                      </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {/* VEHICLE PLATE NUMBER BADGE */}
+                      {ride.vehicleRegistration && (
+                        <div
+                          style={{
+                            background: '#ffffff',
+                            border: '2px solid #0f172a',
+                            borderRadius: '6px',
+                            padding: '0.3rem 0.65rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
+                          }}
+                        >
+                          <span style={{ fontSize: '0.65rem', fontWeight: 900, background: '#0f172a', color: '#f8fafc', padding: '1px 4px', borderRadius: '3px', letterSpacing: '0.5px' }}>
+                            IND
+                          </span>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 900, color: '#0f172a', letterSpacing: '1px' }}>
+                            {ride.vehicleRegistration}
+                          </span>
+                        </div>
+                      )}
+
+                      {ride.driverPhone && (
+                        <a
+                          href={`tel:${ride.driverPhone}`}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            padding: '0.4rem 0.75rem',
+                            background: '#16a34a',
+                            color: '#ffffff',
+                            borderRadius: '8px',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                            boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+                          }}
+                        >
+                          <Phone size={13} />
+                          <span>Call ({ride.driverPhone})</span>
+                        </a>
+                      )}
                     </div>
                   </div>
 
-                  {ride.driverPhone && (
-                    <a
-                      href={`tel:${ride.driverPhone}`}
+                  {/* OTP & SMS NOTIFICATION NOTIFICATION ROW */}
+                  {(ride.startOtp || ride.smsSentAt) && (
+                    <div
                       style={{
-                        display: 'inline-flex',
+                        background: '#ffffff',
+                        border: '1.5px solid #d1fae5',
+                        borderRadius: '10px',
+                        padding: '0.65rem 0.85rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'center',
-                        gap: '0.35rem',
-                        padding: '0.4rem 0.85rem',
-                        background: '#16a34a',
-                        color: '#ffffff',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        textDecoration: 'none',
-                        boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+                        flexWrap: 'wrap',
+                        gap: '0.5rem',
                       }}
                     >
-                      <Phone size={13} />
-                      <span>Contact Driver ({ride.driverPhone})</span>
-                    </a>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <ShieldCheck size={18} color="#059669" />
+                        <div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                            Boarding Pickup OTP (Share with Driver)
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+                            Driver must enter this OTP to start the trip.
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        {ride.startOtp && (
+                          <div
+                            style={{
+                              background: '#ecfdf5',
+                              border: '1.5px solid #10b981',
+                              borderRadius: '8px',
+                              padding: '0.3rem 0.75rem',
+                              fontFamily: 'monospace',
+                              fontSize: '1.15rem',
+                              fontWeight: 900,
+                              color: '#065f46',
+                              letterSpacing: '3px',
+                            }}
+                          >
+                            {ride.startOtp}
+                          </div>
+                        )}
+                        {ride.smsSentAt && (
+                          <div
+                            title={ride.smsContent || 'SMS notification dispatched'}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              fontSize: '0.72rem',
+                              color: '#059669',
+                              fontWeight: 800,
+                              background: '#f0fdf4',
+                              padding: '0.3rem 0.6rem',
+                              borderRadius: '6px',
+                              border: '1px solid #bbf7d0',
+                            }}
+                          >
+                            <Smartphone size={12} />
+                            <span>SMS Sent</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -547,6 +649,27 @@ export const MyRidesPage = () => {
                       </a>
                     )}
                   </div>
+
+                  {(selectedRide.startOtp || selectedRide.smsSentAt) && (
+                    <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #86efac', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.72rem', color: '#166534', fontWeight: 800, textTransform: 'uppercase' }}>Passenger Verification Pickup OTP</div>
+                        <div style={{ fontSize: '0.75rem', color: '#475569' }}>Share this code with your driver before starting trip</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {selectedRide.startOtp && (
+                          <div style={{ background: '#ffffff', border: '1.5px solid #16a34a', borderRadius: '6px', padding: '0.25rem 0.65rem', fontFamily: 'monospace', fontSize: '1.1rem', fontWeight: 900, color: '#14532d', letterSpacing: '2px' }}>
+                            {selectedRide.startOtp}
+                          </div>
+                        )}
+                        {selectedRide.smsSentAt && (
+                          <span style={{ fontSize: '0.72rem', color: '#15803d', fontWeight: 700, background: '#dcfce7', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                            SMS Dispatched
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
