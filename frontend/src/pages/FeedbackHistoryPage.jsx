@@ -37,8 +37,8 @@ export default function FeedbackHistoryPage() {
   }
 
   return (
-    <div className="container" style={{ padding: '2rem 0', maxWidth: '900px' }}>
-      <div style={{ marginBottom: '2rem' }}>
+    <div style={{ width: '100%', maxWidth: '100%', margin: '0 auto' }}>
+      <div style={{ marginBottom: '1.25rem' }}>
         <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0f2920', margin: 0, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
           <Star size={28} color="#d97706" />
           <span>My Ride Ratings & Feedback</span>
@@ -63,19 +63,21 @@ export default function FeedbackHistoryPage() {
           </p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
           {feedbackList.map((f) => (
             <div
               key={f.id}
               style={{
                 background: '#ffffff',
                 border: '1.5px solid #e2e8f0',
-                borderRadius: '18px',
-                padding: '1.5rem',
+                borderRadius: '16px',
+                padding: '1.25rem 1.5rem',
                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+                width: '100%',
+                boxSizing: 'border-box',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                     <span style={{ fontWeight: 900, fontSize: '1.1rem', color: '#0f2920' }}>{f.bookingReference}</span>
@@ -106,25 +108,25 @@ export default function FeedbackHistoryPage() {
                 </div>
               </div>
 
-              {f.comments && (
+              {f.comments && f.comments.trim().length > 0 && (
                 <div
                   style={{
                     background: '#f8faf9',
                     border: '1.5px solid #e2e8f0',
-                    padding: '1rem',
+                    padding: '0.75rem 1rem',
                     borderRadius: '10px',
                     fontSize: '0.9rem',
                     color: '#0f172a',
-                    marginBottom: '0.85rem',
+                    marginBottom: '0.75rem',
                     fontStyle: 'italic',
                     fontWeight: 500,
                   }}
                 >
-                  "{f.comments}"
+                  "{f.comments.trim()}"
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.825rem', color: '#64748b', borderTop: '1.5px solid #f1f5f9', paddingTop: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.825rem', color: '#64748b', borderTop: '1.5px solid #f1f5f9', paddingTop: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div>
                   Driver: <strong style={{ color: '#0f2920' }}>{f.driverName}</strong> &bull; Cab: <strong style={{ color: '#2563eb' }}>{f.vehicleRegistrationNumber}</strong>
                 </div>

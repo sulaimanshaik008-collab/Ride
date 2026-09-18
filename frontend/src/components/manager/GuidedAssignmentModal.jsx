@@ -31,6 +31,7 @@ export const GuidedAssignmentModal = ({ isOpen, onClose, ride, onAssignmentSucce
   const [errorMsg, setErrorMsg] = useState('');
   const [driverSearch, setDriverSearch] = useState('');
   const [vehicleSearch, setVehicleSearch] = useState('');
+  const [rideAmount, setRideAmount] = useState(250);
 
   // Load eligible drivers and vehicles
   useEffect(() => {
@@ -39,6 +40,11 @@ export const GuidedAssignmentModal = ({ isOpen, onClose, ride, onAssignmentSucce
       setSelectedDriver(null);
       setSelectedVehicle(null);
       setErrorMsg('');
+      const dist = ride.distanceKm || 12.5;
+      const initialFare = (ride.estimatedCost && ride.estimatedCost > 0)
+        ? Math.round(ride.estimatedCost)
+        : Math.round(100 + (dist * 15));
+      setRideAmount(initialFare);
       loadEligibleResources();
     }
   }, [isOpen, ride]);
@@ -88,6 +94,7 @@ export const GuidedAssignmentModal = ({ isOpen, onClose, ride, onAssignmentSucce
       const payload = {
         driverId: selectedDriver.id,
         vehicleId: selectedVehicle.id,
+        estimatedCost: Number(rideAmount) || 200,
         assignmentNotes: `Assigned via Corporate Control Center on ${new Date().toLocaleTimeString()}`,
       };
 
@@ -402,6 +409,83 @@ export const GuidedAssignmentModal = ({ isOpen, onClose, ride, onAssignmentSucce
           {/* STEP 3: SELECT VEHICLE */}
           {currentStep === 3 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Ride Amount / Fare Selector */}
+              <div
+                style={{
+                  padding: '1rem 1.25rem',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                  border: '1.5px solid #86efac',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                  flexWrap: 'wrap',
+                  boxShadow: '0 2px 8px rgba(5, 150, 105, 0.08)',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.725rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>Ride Fare & Driver Payout Amount</span>
+                    <span style={{ background: '#dcfce7', padding: '2px 6px', borderRadius: '4px', fontSize: '0.68rem', color: '#15803d' }}>Manager Configurable</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#15803d', marginTop: '3px', fontWeight: 600 }}>
+                    Est. Distance: <strong>{ride.distanceKm || 12.5} km</strong> &bull; Base ₹100 + ₹15/km
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#ffffff', padding: '0.4rem 0.85rem', borderRadius: '8px', border: '1.5px solid #86efac', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <span style={{ fontWeight: 900, color: '#166534', fontSize: '1.15rem' }}>₹</span>
+                    <input
+                      type="number"
+                      min="50"
+                      max="10000"
+                      step="10"
+                      value={rideAmount}
+                      onChange={(e) => setRideAmount(Math.max(0, Number(e.target.value)))}
+                      style={{
+                        width: '85px',
+                        border: 'none',
+                        outline: 'none',
+                        fontSize: '1.15rem',
+                        fontWeight: 900,
+                        color: '#14532d',
+                        background: 'transparent',
+                      }}
+                    />
+                  </div>
+
+                  {/* Preset fare options */}
+                  <div style={{ display: 'flex', gap: '0.35rem' }}>
+                    {[
+                      { label: 'Standard', amount: Math.round(100 + ((ride.distanceKm || 12.5) * 15)) },
+                      { label: 'SUV (+₹50)', amount: Math.round(150 + ((ride.distanceKm || 12.5) * 15)) },
+                      { label: 'Premium (+₹100)', amount: Math.round(200 + ((ride.distanceKm || 12.5) * 15)) },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setRideAmount(preset.amount)}
+                        style={{
+                          padding: '0.4rem 0.65rem',
+                          borderRadius: '6px',
+                          border: rideAmount === preset.amount ? '1.5px solid #15803d' : '1px solid #bbf7d0',
+                          background: rideAmount === preset.amount ? '#15803d' : '#ffffff',
+                          color: rideAmount === preset.amount ? '#ffffff' : '#166534',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f2920' }}>
                   Select Available Vehicle ({filteredVehicles.length} Available)
@@ -547,7 +631,7 @@ export const GuidedAssignmentModal = ({ isOpen, onClose, ride, onAssignmentSucce
                 </p>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
                 {/* Employee Card */}
                 <div style={{ padding: '1rem', borderRadius: '12px', background: '#f8faf9', border: '1.5px solid #e2e8f0' }}>
                   <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>Passenger</div>
@@ -574,6 +658,17 @@ export const GuidedAssignmentModal = ({ isOpen, onClose, ride, onAssignmentSucce
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#2563eb', marginTop: '2px', fontWeight: 600 }}>
                     Plate: {selectedVehicle?.registrationNumber}
+                  </div>
+                </div>
+
+                {/* Ride Fare Card */}
+                <div style={{ padding: '1rem', borderRadius: '12px', background: '#fefce8', border: '1.5px solid #fde047' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#854d0e', textTransform: 'uppercase', fontWeight: 800 }}>Ride Fare</div>
+                  <div style={{ fontWeight: 900, color: '#713f12', marginTop: '4px', fontSize: '1.25rem' }}>
+                    ₹{rideAmount}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#854d0e', marginTop: '2px', fontWeight: 600 }}>
+                    Driver Payout: ₹{rideAmount}
                   </div>
                 </div>
               </div>

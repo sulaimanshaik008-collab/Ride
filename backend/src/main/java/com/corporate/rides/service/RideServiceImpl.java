@@ -440,6 +440,12 @@ public class RideServiceImpl implements RideService {
         ride.setVehicle(vehicle);
         ride.setStatus(RideStatus.ASSIGNED);
 
+        if (request.getEstimatedCost() != null && request.getEstimatedCost() > 0) {
+            ride.setEstimatedCost(Math.round(request.getEstimatedCost() * 100.0) / 100.0);
+        } else if (ride.getEstimatedCost() == null || ride.getEstimatedCost() <= 0) {
+            ride.setEstimatedCost(calculateEstimatedCost(ride.getDistanceKm()));
+        }
+
         // Generate 4-digit verification OTP and compose SMS notification
         String startOtp = String.format("%04d", java.util.concurrent.ThreadLocalRandom.current().nextInt(1000, 10000));
         ride.setStartOtp(startOtp);
@@ -694,6 +700,10 @@ public class RideServiceImpl implements RideService {
 
         ride.setStatus(RideStatus.COMPLETED);
         ride.setCompletedAt(completionTimestamp);
+
+        if (ride.getEstimatedCost() == null || ride.getEstimatedCost() <= 0) {
+            ride.setEstimatedCost(calculateEstimatedCost(ride.getDistanceKm()));
+        }
 
         if (request != null) {
             if (request.getDriverNotes() != null && !request.getDriverNotes().isBlank()) {

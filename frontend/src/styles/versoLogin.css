@@ -222,6 +222,16 @@
   box-shadow: 0 0 0 3px rgba(22, 64, 50, 0.12);
 }
 
+.verso-input-field:-webkit-autofill,
+.verso-input-field:-webkit-autofill:hover, 
+.verso-input-field:-webkit-autofill:focus, 
+.verso-input-field:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 .verso-input-icon {
   position: absolute;
   right: 1rem;

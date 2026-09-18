@@ -80,7 +80,7 @@ export const LocationSearchInput = ({
       clearTimeout(debounceTimerRef.current);
     }
 
-    if (!val || val.trim().length < 2) {
+    if (!val || val.trim().length < 1) {
       setSuggestions([]);
       setIsOpen(true);
       return;
@@ -98,7 +98,7 @@ export const LocationSearchInput = ({
       } finally {
         setLoading(false);
       }
-    }, 200);
+    }, 150);
   };
 
   const handleSelect = async (item) => {
@@ -215,7 +215,9 @@ export const LocationSearchInput = ({
   };
 
   const handleKeyDown = (e) => {
-    const listCount = suggestions.length > 0 ? suggestions.length : (isPickup ? 0 : POPULAR_TAMIL_NADU_COMPANIES.slice(0, 10).length);
+    const listCount = suggestions.length > 0
+      ? suggestions.length
+      : (!isPickup ? popularCompaniesList.length : (!query ? 1 : 0));
     if (!isOpen || listCount === 0) return;
 
     if (e.key === 'ArrowDown') {
@@ -226,12 +228,12 @@ export const LocationSearchInput = ({
       setFocusedIndex((prev) => (prev > 0 ? prev - 1 : listCount - 1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (focusedIndex >= 0) {
-        if (suggestions.length > 0 && focusedIndex < suggestions.length) {
-          handleSelect(suggestions[focusedIndex]);
-        } else if (!isPickup && POPULAR_TAMIL_NADU_COMPANIES[focusedIndex]) {
-          handleSelect(POPULAR_TAMIL_NADU_COMPANIES[focusedIndex]);
-        }
+      if (suggestions.length > 0 && focusedIndex >= 0 && focusedIndex < suggestions.length) {
+        handleSelect(suggestions[focusedIndex]);
+      } else if (!isPickup && !query && focusedIndex >= 0 && popularCompaniesList[focusedIndex]) {
+        handleSelect(popularCompaniesList[focusedIndex]);
+      } else if (isPickup && !query && (focusedIndex === 0 || focusedIndex === -1)) {
+        handleUseCurrentLocation(e);
       }
     } else if (e.key === 'Escape') {
       setIsOpen(false);
@@ -503,8 +505,8 @@ export const LocationSearchInput = ({
             overflowY: 'auto',
           }}
         >
-          {/* 1. USE CURRENT LOCATION BUTTON (For Pickup Search) */}
-          {isPickup && (
+          {/* 1. USE CURRENT LOCATION BUTTON (For Pickup Search when query is empty) */}
+          {isPickup && (!query || query.trim().length === 0) && (
             <div
               onClick={handleUseCurrentLocation}
               style={{
@@ -542,7 +544,7 @@ export const LocationSearchInput = ({
                 )}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 800, color: '#0f2920', fontSize: '0.875rem' }}>
+                <div style={{ fontWeight: 700, color: '#0f2920', fontSize: '0.875rem' }}>
                   Use Current Location
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '1px' }}>
@@ -552,12 +554,26 @@ export const LocationSearchInput = ({
             </div>
           )}
 
-          {/* 2. DYNAMIC AUTOCOMPLETE RESULTS (If User Typed Query) */}
-          {suggestions.length > 0 ? (
+          {/* 2. LOADING STATE */}
+          {loading ? (
+            <div
+              style={{
+                padding: '1.25rem',
+                textAlign: 'center',
+                color: '#64748b',
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+              }}
+            >
+              <Loader2 size={16} className="spin-animation" style={{ color: '#10b981' }} />
+              <span>Searching locations...</span>
+            </div>
+          ) : suggestions.length > 0 ? (
+            /* 3. DYNAMIC AUTOCOMPLETE RESULTS */
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              <div style={{ fontSize: '0.725rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0.35rem 0.6rem' }}>
-                Tamil Nadu Location Results
-              </div>
               {suggestions.map((item, index) => {
                 const isFocused = focusedIndex === index;
                 return (
@@ -568,25 +584,38 @@ export const LocationSearchInput = ({
                     onClick={() => handleSelect(item)}
                     style={{
                       padding: '0.65rem 0.85rem',
-                      borderRadius: '10px',
+                      borderRadius: '8px',
                       cursor: 'pointer',
                       display: 'flex',
-                      alignItems: 'flex-start',
+                      alignItems: 'center',
                       gap: '0.75rem',
                       color: '#0f172a',
                       fontSize: '0.85rem',
-                      background: isFocused ? 'rgba(22, 64, 50, 0.08)' : 'transparent',
-                      border: isFocused ? '1px solid rgba(22, 64, 50, 0.2)' : '1px solid transparent',
-                      transition: 'all 0.12s ease',
+                      background: isFocused ? '#f3f4f6' : 'transparent',
+                      borderBottom: index < suggestions.length - 1 ? '1px solid #f1f5f9' : 'none',
+                      transition: 'background 0.12s ease',
                     }}
                     onMouseEnter={() => setFocusedIndex(index)}
                   >
-                    {getPlaceIcon(item.types, item.name)}
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: isFocused ? '#e2e8f0' : '#f1f5f9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {getPlaceIcon(item.types, item.name)}
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
-                          fontWeight: 800,
-                          color: '#0f2920',
+                          fontWeight: 700,
+                          color: '#111827',
                           fontSize: '0.875rem',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
@@ -598,7 +627,7 @@ export const LocationSearchInput = ({
                       <div
                         style={{
                           fontSize: '0.75rem',
-                          color: '#64748b',
+                          color: '#6b7280',
                           marginTop: '2px',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
@@ -612,8 +641,8 @@ export const LocationSearchInput = ({
                 );
               })}
             </ul>
-          ) : !isPickup && (!query || query.trim().length < 2) ? (
-            /* 3. POPULAR COMPANIES IN TAMIL NADU (Clean list without bulky header) */
+          ) : !isPickup && (!query || query.trim().length === 0) ? (
+            /* 4. POPULAR COMPANIES FOR DESTINATION */
             <div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {popularCompaniesList.map((company, index) => {
@@ -625,26 +654,39 @@ export const LocationSearchInput = ({
                       aria-selected={isFocused}
                       onClick={() => handleSelect(company)}
                       style={{
-                        padding: '0.6rem 0.85rem',
-                        borderRadius: '10px',
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '8px',
                         cursor: 'pointer',
                         display: 'flex',
-                        alignItems: 'flex-start',
+                        alignItems: 'center',
                         gap: '0.75rem',
                         color: '#0f172a',
                         fontSize: '0.85rem',
-                        background: isFocused ? 'rgba(22, 64, 50, 0.08)' : 'transparent',
-                        border: isFocused ? '1px solid rgba(22, 64, 50, 0.2)' : '1px solid transparent',
-                        transition: 'all 0.12s ease',
+                        background: isFocused ? '#f3f4f6' : 'transparent',
+                        borderBottom: index < popularCompaniesList.length - 1 ? '1px solid #f1f5f9' : 'none',
+                        transition: 'background 0.12s ease',
                       }}
                       onMouseEnter={() => setFocusedIndex(index)}
                     >
-                      <Building2 size={16} color="#059669" style={{ marginTop: '2px', flexShrink: 0 }} />
+                      <div
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          background: isFocused ? '#e2e8f0' : '#f1f5f9',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Building2 size={16} color="#059669" />
+                      </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div
                           style={{
-                            fontWeight: 800,
-                            color: '#0f2920',
+                            fontWeight: 700,
+                            color: '#111827',
                             fontSize: '0.875rem',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
@@ -656,7 +698,7 @@ export const LocationSearchInput = ({
                         <div
                           style={{
                             fontSize: '0.75rem',
-                            color: '#64748b',
+                            color: '#6b7280',
                             marginTop: '2px',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
@@ -671,9 +713,10 @@ export const LocationSearchInput = ({
                 })}
               </ul>
             </div>
-          ) : query && query.trim().length >= 2 && !loading ? (
-            <div style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
-              No Tamil Nadu locations found matching "{query}". You can still search any address or landmark.
+          ) : query && query.trim().length >= 1 ? (
+            /* 5. EMPTY SEARCH STATE */
+            <div style={{ padding: '1.25rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+              No locations found matching "{query}".
             </div>
           ) : null}
         </div>

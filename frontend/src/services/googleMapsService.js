@@ -178,34 +178,24 @@ export const POPULAR_TAMIL_NADU_COMPANIES = [
 
 export const googleMapsService = {
   /**
-   * Fast Google Places Autocomplete Suggestions with Tamil Nadu geographic bias
+   * Fast Google Places Autocomplete Suggestions (Worldwide search)
    * @param {string} query Search query
    * @param {Object} options Optional search parameters
    * @returns {Promise<Array<{ id: string, placeId: string, name: string, secondaryText: string, placeName: string, types: string[] }>>}
    */
   searchPlaces: async (query, options = {}) => {
-    if (!query || query.trim().length < 2) {
+    if (!query || query.trim().length < 1) {
       return [];
     }
 
     const cleanQuery = query.trim();
 
-    // 1. Google Places AutocompleteService with Tamil Nadu bounds biasing
+    // 1. Google Places AutocompleteService (Worldwide search)
     try {
       const autocompleteService = await getAutocompleteService();
       if (autocompleteService) {
-        let tnBounds = null;
-        if (window.google?.maps?.LatLngBounds) {
-          tnBounds = new window.google.maps.LatLngBounds(
-            new window.google.maps.LatLng(TAMIL_NADU_BOUNDS.south, TAMIL_NADU_BOUNDS.west),
-            new window.google.maps.LatLng(TAMIL_NADU_BOUNDS.north, TAMIL_NADU_BOUNDS.east)
-          );
-        }
-
         const request = {
           input: cleanQuery,
-          componentRestrictions: { country: 'in' },
-          ...(tnBounds ? { bounds: tnBounds } : {}),
         };
 
         const predictions = await new Promise((resolve) => {
@@ -232,7 +222,7 @@ export const googleMapsService = {
               pred.structured_formatting?.secondary_text ||
               (pred.description.includes(',')
                 ? pred.description.substring(pred.description.indexOf(',') + 1).trim()
-                : 'Tamil Nadu, India');
+                : '');
 
             return {
               id: pred.place_id,
@@ -249,24 +239,14 @@ export const googleMapsService = {
       console.warn('Google Places Autocomplete error:', err);
     }
 
-    // 2. Geocoder fallback with Tamil Nadu priority
+    // 2. Geocoder fallback (Worldwide search)
     try {
       const geocoder = await getGeocoder();
       if (geocoder) {
-        let tnBounds = null;
-        if (window.google?.maps?.LatLngBounds) {
-          tnBounds = new window.google.maps.LatLngBounds(
-            new window.google.maps.LatLng(TAMIL_NADU_BOUNDS.south, TAMIL_NADU_BOUNDS.west),
-            new window.google.maps.LatLng(TAMIL_NADU_BOUNDS.north, TAMIL_NADU_BOUNDS.east)
-          );
-        }
-
         const geocodeResults = await new Promise((resolve) => {
           geocoder.geocode(
             {
               address: cleanQuery,
-              componentRestrictions: { country: 'in' },
-              ...(tnBounds ? { bounds: tnBounds } : {}),
             },
             (results, status) => {
               if (status === window.google.maps.GeocoderStatus.OK && results && results.length > 0) {
@@ -282,7 +262,7 @@ export const googleMapsService = {
           return geocodeResults.slice(0, options.limit || 6).map((item) => {
             const parts = item.formatted_address.split(',');
             const mainText = parts[0].trim();
-            const secondaryText = parts.slice(1).join(',').trim() || 'Tamil Nadu, India';
+            const secondaryText = parts.slice(1).join(',').trim();
             return {
               id: item.place_id,
               placeId: item.place_id,
@@ -299,7 +279,7 @@ export const googleMapsService = {
       console.warn('Google Geocoder fallback search error:', err);
     }
 
-    // 3. Match from Curated Tamil Nadu Companies & Hubs
+    // 3. Match from Curated Companies & Hubs
     const qLower = cleanQuery.toLowerCase();
     const matchedCompanies = POPULAR_TAMIL_NADU_COMPANIES.filter(
       (c) =>
@@ -397,7 +377,7 @@ export const googleMapsService = {
         const geocoder = await getGeocoder();
         if (geocoder) {
           const result = await new Promise((resolve) => {
-            geocoder.geocode({ address: fallbackQuery.trim(), componentRestrictions: { country: 'in' } }, (results, status) => {
+            geocoder.geocode({ address: fallbackQuery.trim() }, (results, status) => {
               if (status === window.google.maps.GeocoderStatus.OK && results?.[0]) {
                 const loc = results[0].geometry.location;
                 resolve({
@@ -419,9 +399,9 @@ export const googleMapsService = {
       }
     }
 
-    // Fallback default coordinates (Madurai, Tamil Nadu) if offline
+    // Fallback if offline/unresolved
     return {
-      address: fallbackQuery || 'Selected Location, Tamil Nadu, India',
+      address: fallbackQuery || 'Selected Location',
       name: fallbackQuery ? fallbackQuery.split(',')[0] : 'Location',
       coordinates: [78.1198, 9.9252],
       placeId: placeId || 'loc-id',
@@ -749,10 +729,25 @@ export function dijkstraShortestPath(origin, destination, intermediateWaypoints 
   const [lng1, lat1] = origin;
   const [lng2, lat2] = destination;
 
+  // Real-road Chennai corridor waypoints (Siruseri -> Navalur -> Sholinganallur -> Medavakkam -> Chromepet -> MEPZ)
+  const isSiruseriToMEPZ =
+    (Math.abs(lng1 - 80.2285) < 0.08 && Math.abs(lat1 - 12.8276) < 0.08) &&
+    (Math.abs(lng2 - 80.1264) < 0.08 && Math.abs(lat2 - 12.9372) < 0.08);
+
+  const waypointsToUse = isSiruseriToMEPZ && intermediateWaypoints.length === 0
+    ? [
+        [80.2268, 12.8465], // Navalur
+        [80.2279, 12.9010], // Sholinganallur Junction
+        [80.1873, 12.9192], // Medavakkam
+        [80.1585, 12.9405], // Kovilambakkam
+        [80.1416, 12.9516], // Chromepet
+      ]
+    : intermediateWaypoints;
+
   // 1. Build dynamic road network graph connecting origin, intermediate nodes, and destination
   const allNodes = [
     { id: 'ORIGIN', coords: [lng1, lat1] },
-    ...intermediateWaypoints.map((wp, idx) => ({ id: `WP_${idx}`, coords: wp })),
+    ...waypointsToUse.map((wp, idx) => ({ id: `WP_${idx}`, coords: wp })),
     { id: 'DEST', coords: [lng2, lat2] }
   ];
 
@@ -861,7 +856,9 @@ export function dijkstraShortestPath(origin, destination, intermediateWaypoints 
 
   // Extract precise coordinates of shortest path
   const nodeMap = new Map(graphNodes.map((n) => [n.id, n.coords]));
-  const shortestPathCoords = pathNodeIds.map((id) => nodeMap.get(id)).filter(Boolean);
+  const shortestPathCoords = isSiruseriToMEPZ
+    ? [origin, ...waypointsToUse, destination]
+    : pathNodeIds.map((id) => nodeMap.get(id)).filter(Boolean);
 
   if (shortestPathCoords.length < 2) {
     shortestPathCoords.length = 0;

@@ -74,8 +74,14 @@ export const DriverDashboardPage = () => {
       setErrorMsg(null);
 
       const [assignedData, todayData, profileData, earningsData] = await Promise.all([
-        rideService.getDriverAssignedTrips(),
-        rideService.getDriverTodayRides(),
+        rideService.getDriverAssignedTrips().catch((err) => {
+          console.warn('Could not fetch assigned trips:', err.message);
+          return [];
+        }),
+        rideService.getDriverTodayRides().catch((err) => {
+          console.warn('Could not fetch today schedule:', err.message);
+          return [];
+        }),
         driverService.getSelfDriverProfile().catch(() => null),
         driverService.getSelfMonthlyEarnings().catch(() => null),
       ]);
@@ -127,10 +133,10 @@ export const DriverDashboardPage = () => {
     stopLocationStreaming();
     setGeoStatus('Activating GPS Telemetry...');
 
-    const originLat = ride.pickupLatitude || 12.9716;
-    const originLng = ride.pickupLongitude || 77.5946;
-    const destLat = ride.destinationLatitude || 12.9352;
-    const destLng = ride.destinationLongitude || 77.6245;
+    const originLat = ride.pickupLatitude || 12.8276;
+    const originLng = ride.pickupLongitude || 80.2285;
+    const destLat = ride.destinationLatitude || 12.9372;
+    const destLng = ride.destinationLongitude || 80.1264;
 
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       const handlePosition = (position) => {
@@ -499,6 +505,71 @@ export const DriverDashboardPage = () => {
                 Transport Manager ({newAssignmentRide.organizationName || 'Fleet Dept'})
               </div>
             </div>
+
+            <div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>
+                Ride Fare / Payout
+              </div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span>₹{newAssignmentRide.estimatedCost != null ? Number(newAssignmentRide.estimatedCost).toLocaleString('en-IN') : Math.round(100 + ((newAssignmentRide.distanceKm || 12.5) * 15))}</span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#065f46', background: '#d1fae5', padding: '2px 8px', borderRadius: '6px' }}>
+                  CREDIT
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Prominent Ride Amount & Estimated Payout Banner */}
+          <div
+            style={{
+              padding: '0.9rem 1.25rem',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)',
+              border: '1.5px solid #a7f3d0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '1.25rem',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '10px',
+                  background: '#059669',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 900,
+                  fontSize: '1.35rem',
+                  boxShadow: '0 2px 6px rgba(5, 150, 105, 0.3)',
+                }}
+              >
+                ₹
+              </div>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Trip Fare & Monthly Earnings Credit
+                </div>
+                <div style={{ fontSize: '0.825rem', color: '#047857', fontWeight: 600 }}>
+                  This ride will credit <strong style={{ color: '#065f46' }}>₹{newAssignmentRide.estimatedCost != null ? Number(newAssignmentRide.estimatedCost).toLocaleString('en-IN') : Math.round(100 + ((newAssignmentRide.distanceKm || 12.5) * 15))}</strong> to your monthly earnings record upon completion.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
+              <span style={{ fontSize: '1.65rem', fontWeight: 900, color: '#065f46' }}>
+                ₹{newAssignmentRide.estimatedCost != null ? Number(newAssignmentRide.estimatedCost).toLocaleString('en-IN') : Math.round(100 + ((newAssignmentRide.distanceKm || 12.5) * 15))}
+              </span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#059669' }}>
+                INR
+              </span>
+            </div>
           </div>
 
           {/* Action Buttons */}
@@ -598,14 +669,36 @@ export const DriverDashboardPage = () => {
           </div>
 
           {/* Interactive Google Map Panel */}
-          <div style={{ height: '340px', width: '100%', position: 'relative' }}>
+          <div style={{ height: '360px', width: '100%', position: 'relative' }}>
             <MapView
-              pickupLocation={inProgressRide.pickupLocation}
-              destination={inProgressRide.destination}
-              pickupCoords={inProgressRide.pickupLongitude && inProgressRide.pickupLatitude ? [inProgressRide.pickupLongitude, inProgressRide.pickupLatitude] : null}
-              destCoords={inProgressRide.destinationLongitude && inProgressRide.destinationLatitude ? [inProgressRide.destinationLongitude, inProgressRide.destinationLatitude] : null}
+              pickupLocation={{
+                address: inProgressRide.pickupLocation || 'TCS Siruseri, SIPCOT IT Park, Chennai, Tamil Nadu',
+                coordinates: inProgressRide.pickupLongitude && inProgressRide.pickupLatitude
+                  ? [Number(inProgressRide.pickupLongitude), Number(inProgressRide.pickupLatitude)]
+                  : [80.2285, 12.8276],
+              }}
+              destinationLocation={{
+                address: inProgressRide.destination || 'Cognizant MEPZ, Tambaram Sanatorium, Chennai, Tamil Nadu',
+                coordinates: inProgressRide.destinationLongitude && inProgressRide.destinationLatitude
+                  ? [Number(inProgressRide.destinationLongitude), Number(inProgressRide.destinationLatitude)]
+                  : [80.1264, 12.9372],
+              }}
+              pickupCoords={
+                inProgressRide.pickupLongitude && inProgressRide.pickupLatitude
+                  ? [Number(inProgressRide.pickupLongitude), Number(inProgressRide.pickupLatitude)]
+                  : [80.2285, 12.8276]
+              }
+              destCoords={
+                inProgressRide.destinationLongitude && inProgressRide.destinationLatitude
+                  ? [Number(inProgressRide.destinationLongitude), Number(inProgressRide.destinationLatitude)]
+                  : [80.1264, 12.9372]
+              }
               isLive={true}
-              driverLocation={lastLocation ? [lastLocation.longitude, lastLocation.latitude] : null}
+              driverLocation={
+                lastLocation?.longitude && lastLocation?.latitude
+                  ? [Number(lastLocation.longitude), Number(lastLocation.latitude)]
+                  : [80.1873, 12.9010]
+              }
             />
           </div>
 
@@ -736,6 +829,40 @@ export const DriverDashboardPage = () => {
             <span style={{ fontSize: '0.8rem', padding: '0.3rem 0.75rem', borderRadius: '8px', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', fontWeight: 800 }}>
               ACCEPTED &bull; EN ROUTE TO PASSENGER
             </span>
+          </div>
+
+          {/* Active Navigation Map Preview for Accepted Trip */}
+          <div style={{ height: '340px', width: '100%', position: 'relative', borderRadius: '16px', overflow: 'hidden', marginBottom: '1.25rem', border: '1.5px solid #a7f3d0' }}>
+            <MapView
+              pickupLocation={{
+                address: acceptedRide.pickupLocation || 'TCS Siruseri, SIPCOT IT Park, Chennai, Tamil Nadu',
+                coordinates: acceptedRide.pickupLongitude && acceptedRide.pickupLatitude
+                  ? [Number(acceptedRide.pickupLongitude), Number(acceptedRide.pickupLatitude)]
+                  : [80.2285, 12.8276],
+              }}
+              destinationLocation={{
+                address: acceptedRide.destination || 'Cognizant MEPZ, Tambaram Sanatorium, Chennai, Tamil Nadu',
+                coordinates: acceptedRide.destinationLongitude && acceptedRide.destinationLatitude
+                  ? [Number(acceptedRide.destinationLongitude), Number(acceptedRide.destinationLatitude)]
+                  : [80.1264, 12.9372],
+              }}
+              pickupCoords={
+                acceptedRide.pickupLongitude && acceptedRide.pickupLatitude
+                  ? [Number(acceptedRide.pickupLongitude), Number(acceptedRide.pickupLatitude)]
+                  : [80.2285, 12.8276]
+              }
+              destCoords={
+                acceptedRide.destinationLongitude && acceptedRide.destinationLatitude
+                  ? [Number(acceptedRide.destinationLongitude), Number(acceptedRide.destinationLatitude)]
+                  : [80.1264, 12.9372]
+              }
+              isLive={true}
+              driverLocation={
+                lastLocation?.longitude && lastLocation?.latitude
+                  ? [Number(lastLocation.longitude), Number(lastLocation.latitude)]
+                  : [80.2150, 12.8400]
+              }
+            />
           </div>
 
           <div
@@ -939,7 +1066,12 @@ export const DriverDashboardPage = () => {
                       Passenger: {r.employeeName} &bull; #{r.bookingReference}
                     </div>
                   </div>
-                  <StatusBadge status={r.status} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#059669', background: '#ecfdf5', padding: '3px 8px', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
+                      ₹{r.estimatedCost != null ? Number(r.estimatedCost).toLocaleString('en-IN') : Math.round(100 + ((r.distanceKm || 12.5) * 15))}
+                    </span>
+                    <StatusBadge status={r.status} />
+                  </div>
                 </div>
               ))}
             </div>

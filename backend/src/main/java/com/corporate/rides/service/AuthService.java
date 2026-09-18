@@ -10,4 +10,5 @@ public interface AuthService {
     List<UserProfileDto> getAvailableDemoUsers();
     UserProfileDto loginAsEmail(String email);
     UserProfileDto login(LoginRequestDto request);
+    UserProfileDto signup(LoginRequestDto request);
 }

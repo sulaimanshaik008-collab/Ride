@@ -190,6 +190,78 @@ public class AuthServiceImpl implements AuthService {
         return mapToDto(saved);
     }
 
+    @Override
+    @Transactional
+    public UserProfileDto signup(LoginRequestDto request) {
+        String input = request != null && request.getEmail() != null ? request.getEmail().trim() : "";
+        if (input.isBlank()) {
+            throw new IllegalArgumentException("Email is required for registration.");
+        }
+        String cleanEmail = input.toLowerCase();
+        if (userRepository.findByEmail(cleanEmail).isPresent()) {
+            throw new IllegalArgumentException("This email already exists. Please use a different email or sign in.");
+        }
+
+        // Auto-provision user under default organization
+        Organization org = organizationRepository.findAll().stream().findFirst()
+                .orElseGet(() -> organizationRepository.save(Organization.builder()
+                        .name(request.getOrganizationName() != null && !request.getOrganizationName().isBlank() ? request.getOrganizationName().trim() : "Acme Global Corporation")
+                        .code("ACME_CORP")
+                        .build()));
+
+        String formattedName = request.getFullName();
+        if (formattedName == null || formattedName.isBlank()) {
+            String username = cleanEmail.contains("@") ? cleanEmail.split("@")[0] : cleanEmail;
+            formattedName = Character.toUpperCase(username.charAt(0)) + (username.length() > 1 ? username.substring(1) : "");
+        }
+
+        String dept = request.getDepartment() != null && !request.getDepartment().isBlank()
+                ? request.getDepartment().trim()
+                : (request.getOrganizationName() != null && !request.getOrganizationName().isBlank() ? request.getOrganizationName().trim() : "Corporate Operations");
+
+        UserRole assignedRole = UserRole.EMPLOYEE;
+        if (request.getRole() != null && !request.getRole().isBlank()) {
+            try {
+                assignedRole = UserRole.valueOf(request.getRole().trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {
+                assignedRole = UserRole.EMPLOYEE;
+            }
+        }
+
+        String cleanPhone = request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()
+                ? request.getPhoneNumber().trim()
+                : null;
+
+        User newUser = User.builder()
+                .organization(org)
+                .email(cleanEmail)
+                .fullName(formattedName)
+                .phoneNumber(cleanPhone)
+                .department(dept)
+                .role(assignedRole)
+                .status(UserStatus.ACTIVE)
+                .verificationStatus(VerificationStatus.VERIFIED)
+                .build();
+
+        User saved = userRepository.save(newUser);
+
+        if (assignedRole == UserRole.DRIVER) {
+            final String lic = "DL-" + cleanEmail.replaceAll("[^a-zA-Z0-9]", "").toUpperCase().substring(0, Math.min(10, cleanEmail.length()));
+            driverRepository.findByUserId(saved.getId()).orElseGet(() -> driverRepository.save(
+                    com.corporate.rides.entity.Driver.builder()
+                            .user(saved)
+                            .organization(org)
+                            .licenseNumber(lic)
+                            .licenseExpiryDate(LocalDate.now().plusYears(3))
+                            .driverStatus(com.corporate.rides.enums.DriverStatus.ACTIVE)
+                            .availabilityStatus(com.corporate.rides.enums.DriverAvailability.AVAILABLE)
+                            .build()
+            ));
+        }
+
+        return mapToDto(saved);
+    }
+
     private UserProfileDto mapToDto(User user) {
         return UserProfileDto.builder()
                 .id(user.getId())

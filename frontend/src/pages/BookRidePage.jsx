@@ -28,6 +28,7 @@ import { useAuth } from '../context/AuthContext';
 import { MapView } from '../components/map/MapView';
 import { LocationSearchInput } from '../components/map/LocationSearchInput';
 import { RiderSelectionModal } from '../components/RiderSelectionModal';
+import promoBannerImg from '../assets/promo-voucher-banner.png';
 
 const PRESET_LOCATIONS = [
   { name: '35/1, Muniyandi Kovil Ln, near Saravana Multi-Speciality Hospital Pvt Ltd', coordinates: [78.1198, 9.9252] },
@@ -121,6 +122,7 @@ export const BookRidePage = () => {
     phone: '',
   });
   const [showRiderModal, setShowRiderModal] = useState(false);
+  const [showPromoModal, setShowPromoModal] = useState(false);
   const [selectionMode, setSelectionMode] = useState('PICKUP');
 
   const [routeDetails, setRouteDetails] = useState(null);
@@ -432,7 +434,7 @@ export const BookRidePage = () => {
               type="button"
               onClick={handleConfirmSchedule}
               className="uber-search-btn"
-              style={{ marginTop: 'auto' }}
+              style={{ marginTop: '0.5rem' }}
             >
               Set pickup time
             </button>
@@ -445,10 +447,22 @@ export const BookRidePage = () => {
             <h1 className="uber-title">Get a ride</h1>
 
             {/* PROMO / POLICY VOUCHER PILL */}
-            <div className="uber-promo-pill">
+            <div
+              className="uber-promo-pill"
+              onClick={() => setShowPromoModal(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setShowPromoModal(true);
+                }
+              }}
+              title="Click to view promo details"
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 <Tag size={15} color="#059669" style={{ flexShrink: 0 }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>100% off your next ride. Up to ₹35 pe...</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>100% off your next ride. Up to ₹45 pe...</span>
               </div>
               <Info size={15} color="#059669" style={{ cursor: 'pointer', flexShrink: 0 }} />
             </div>
@@ -634,6 +648,154 @@ export const BookRidePage = () => {
           setShowRiderModal(false);
         }}
       />
+
+      {/* PROMOTION / VOUCHER DETAILS MODAL */}
+      {showPromoModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowPromoModal(false)}
+          role="dialog"
+          aria-modal="true"
+          style={{
+            zIndex: 1200,
+            padding: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0, 0, 0, 0.65)',
+          }}
+        >
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '440px',
+              width: '100%',
+              padding: 0,
+              borderRadius: '16px',
+              overflow: 'hidden',
+              background: '#ffffff',
+              color: '#000000',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+              position: 'relative',
+              animation: 'modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            {/* TOP ILLUSTRATION HEADER WITH CLOSE BUTTON */}
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                overflow: 'hidden',
+                flexShrink: 0,
+                background: '#cbe5d2',
+              }}
+            >
+              <img
+                src={promoBannerImg}
+                alt="Price Tag"
+                title="Price Tag"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  display: 'block',
+                  userSelect: 'none',
+                }}
+              />
+              {/* Interactive click zone perfectly overlaying the top-right close X */}
+              <button
+                type="button"
+                onClick={() => setShowPromoModal(false)}
+                aria-label="Close"
+                title="Close"
+                style={{
+                  position: 'absolute',
+                  top: '5%',
+                  right: '3.5%',
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  zIndex: 10,
+                }}
+              />
+            </div>
+
+            {/* SCROLLABLE CONTENT BODY */}
+            <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+              <h2
+                style={{
+                  fontSize: '1.45rem',
+                  fontWeight: 800,
+                  color: '#000000',
+                  margin: 0,
+                  lineHeight: 1.25,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                100% off your next ride. Up to ₹45 per ride.
+              </h2>
+
+              {/* EXPIRATION */}
+              <div style={{ marginTop: '1.25rem' }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#000000', marginBottom: '0.2rem' }}>
+                  Expiration
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#4b5563' }}>
+                  Expires Jan 31, 2027.
+                </div>
+              </div>
+
+              {/* RESTRICTIONS */}
+              <div style={{ marginTop: '1.25rem', marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#000000', marginBottom: '0.6rem' }}>
+                  Restrictions
+                </div>
+                <ul
+                  style={{
+                    paddingLeft: '1.2rem',
+                    margin: 0,
+                    fontSize: '0.84rem',
+                    color: '#374151',
+                    lineHeight: 1.6,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.45rem',
+                  }}
+                >
+                  <li>Congrats! You've unlocked first FREE Bike ride upto Rs 45. Limited period validity.</li>
+                  <li>Valid only on: Bike, Bike Saver.</li>
+                  <li>Valid in India.</li>
+                  <li>Up to ₹45 per ride.</li>
+                  <li>Only promotions applied at time of trip booking will be available at trip completion.</li>
+                  <li>
+                    Discount does not apply to surcharges, government fees, tolls, or tips and cannot be combined with other offers. For accounts with multiple valid promo codes, the promo with the highest savings will automatically apply to a rider’s next trip. Offer is non-transferable. Offer and terms are subject to change.
+                  </li>
+                </ul>
+              </div>
+
+              {/* BOOK NOW ACTION BUTTON */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPromoModal(false);
+                  const pickupInput = document.getElementById('uber-pickup-input');
+                  if (pickupInput) pickupInput.focus();
+                }}
+                className="uber-search-btn"
+                style={{ marginTop: '0.5rem', width: '100%' }}
+              >
+                Book now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CONFIRMATION SUCCESS MODAL (Centered with full black overlay) */}
       {confirmedRide && (

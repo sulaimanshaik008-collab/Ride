@@ -913,9 +913,10 @@ textarea.form-control {
   flex-direction: column;
   gap: 0.85rem;
   color: #000000;
-  height: 100%;
+  height: fit-content;
+  align-self: start;
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow-y: visible;
 }
 
 .uber-title {
@@ -942,6 +943,12 @@ textarea.form-control {
   font-weight: 600;
   gap: 0.5rem;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.uber-promo-pill:hover {
+  background: #bbf7d0;
 }
 
 .uber-location-group {
@@ -1037,7 +1044,7 @@ textarea.form-control {
   justify-content: center;
   gap: 0.5rem;
   transition: background 0.15s ease;
-  margin-top: auto;
+  margin-top: 0.5rem;
   flex-shrink: 0;
 }
 
@@ -1060,6 +1067,7 @@ textarea.form-control {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   border: 1px solid #e5e7eb;
   box-sizing: border-box;
+  align-self: stretch;
 }
 
 @media (max-width: 960px) {

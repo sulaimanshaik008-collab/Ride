@@ -35,4 +35,10 @@ public class AuthController {
         UserProfileDto profile = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success(profile, "Logged in successfully"));
     }
+
+    @PostMapping("/signup")
+    public ResponseEntity<ApiResponse<UserProfileDto>> signup(@Valid @RequestBody LoginRequestDto request) {
+        UserProfileDto profile = authService.signup(request);
+        return ResponseEntity.ok(ApiResponse.success(profile, "Registered successfully"));
+    }
 }

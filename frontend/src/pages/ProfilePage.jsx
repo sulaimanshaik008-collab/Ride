@@ -288,6 +288,15 @@ export const ProfilePage = () => {
           >
             <Camera size={16} />
           </button>
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept="image/jpeg,image/png,image/webp"
+            style={{ display: 'none' }}
+            aria-label="Upload profile image file"
+          />
         </div>
 
         <div style={{ flex: 1, minWidth: '220px' }}>
@@ -442,88 +451,6 @@ export const ProfilePage = () => {
 
         {/* ACCOUNT & PHOTO MANAGEMENT */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* PROFILE PHOTO CARD */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              border: '1.5px solid #e2e8f0',
-              padding: '1.75rem',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <Camera size={20} color="#059669" />
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f2920', margin: 0 }}>Profile Photo</h2>
-            </div>
-
-            <p style={{ fontSize: '0.825rem', color: '#64748b', margin: '0 0 1.25rem 0' }}>
-              Upload a clear profile photo. Supported formats: JPEG, PNG, WEBP (Max 5MB).
-            </p>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              accept="image/jpeg,image/png,image/webp"
-              style={{ display: 'none' }}
-              aria-label="Upload profile image file"
-            />
-
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingPhoto}
-                style={{
-                  flex: 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.4rem',
-                  padding: '0.65rem 1rem',
-                  background: '#059669',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'opacity 0.2s',
-                  opacity: uploadingPhoto ? 0.6 : 1,
-                }}
-              >
-                <Upload size={16} />
-                <span>{photoPreview ? 'Change Photo' : 'Upload Photo'}</span>
-              </button>
-
-              {photoPreview && (
-                <button
-                  type="button"
-                  onClick={handleRemovePhoto}
-                  disabled={uploadingPhoto}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.4rem',
-                    padding: '0.65rem 0.9rem',
-                    background: '#fef2f2',
-                    color: '#ef4444',
-                    border: '1.5px solid #fecaca',
-                    borderRadius: '10px',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Trash2 size={16} />
-                  <span>Remove</span>
-                </button>
-              )}
-            </div>
-          </div>
-
           {/* READ-ONLY TENANT & SECURITY CARD */}
           <div
             style={{

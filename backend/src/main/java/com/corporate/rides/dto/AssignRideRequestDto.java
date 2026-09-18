@@ -19,4 +19,6 @@ public class AssignRideRequestDto {
 
     @NotNull(message = "Vehicle ID is required")
     private UUID vehicleId;
+
+    private Double estimatedCost;
 }

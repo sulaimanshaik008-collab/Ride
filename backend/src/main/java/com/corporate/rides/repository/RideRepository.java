@@ -158,7 +158,8 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
 
     @Query("SELECT r FROM Ride r WHERE r.driver.id = :driverId " +
            "AND r.status = com.corporate.rides.enums.RideStatus.COMPLETED " +
-           "AND r.bookingDate >= :startDate AND r.bookingDate <= :endDate " +
+           "AND ((r.bookingDate >= :startDate AND r.bookingDate <= :endDate) " +
+           "     OR (cast(r.completedAt as date) >= :startDate AND cast(r.completedAt as date) <= :endDate)) " +
            "ORDER BY r.bookingDate DESC")
     List<Ride> findCompletedDriverRidesInDateRange(
             @Param("driverId") UUID driverId,
@@ -168,7 +169,8 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
 
     @Query("SELECT r FROM Ride r WHERE r.organization.id = :orgId " +
            "AND r.status = com.corporate.rides.enums.RideStatus.COMPLETED " +
-           "AND r.bookingDate >= :startDate AND r.bookingDate <= :endDate " +
+           "AND ((r.bookingDate >= :startDate AND r.bookingDate <= :endDate) " +
+           "     OR (cast(r.completedAt as date) >= :startDate AND cast(r.completedAt as date) <= :endDate)) " +
            "ORDER BY r.bookingDate DESC")
     List<Ride> findCompletedOrganizationRidesInDateRange(
             @Param("orgId") UUID orgId,

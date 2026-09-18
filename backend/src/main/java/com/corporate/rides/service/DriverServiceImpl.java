@@ -117,15 +117,20 @@ public class DriverServiceImpl implements DriverService {
     @Transactional
     public DriverResponseDto getSelfDriverProfile() {
         UserPrincipal currentUser = getCurrentUserPrincipal();
+        Driver driver = getOrCreateDriver(currentUser);
+        return mapToDto(driver);
+    }
 
-        Driver driver = driverRepository.findByUserId(currentUser.getUserId())
+    private Driver getOrCreateDriver(UserPrincipal currentUser) {
+        return driverRepository.findByUserId(currentUser.getUserId())
                 .orElseGet(() -> {
                     User user = userRepository.findById(currentUser.getUserId())
                             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
                     Organization org = user.getOrganization();
                     String cleanEmail = user.getEmail() != null ? user.getEmail() : "driver";
-                    String lic = "DL-" + cleanEmail.replaceAll("[^a-zA-Z0-9]", "").toUpperCase().substring(0, Math.min(10, cleanEmail.length()));
-                    
+                    String alphaOnly = cleanEmail.replaceAll("[^a-zA-Z0-9]", "").toUpperCase();
+                    String lic = "DL-" + (alphaOnly.isEmpty() ? "DRIVER" : alphaOnly.substring(0, Math.min(10, alphaOnly.length())));
+
                     return driverRepository.save(Driver.builder()
                             .user(user)
                             .organization(org)
@@ -136,8 +141,6 @@ public class DriverServiceImpl implements DriverService {
                             .verificationStatus(DriverVerificationStatus.VERIFIED)
                             .build());
                 });
-
-        return mapToDto(driver);
     }
 
     @Override
@@ -232,13 +235,10 @@ public class DriverServiceImpl implements DriverService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public DriverMonthlyPayoutDto getSelfDriverMonthlyPayout(String monthStr) {
         UserPrincipal currentUser = getCurrentUserPrincipal();
-
-        Driver driver = driverRepository.findByUserId(currentUser.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Driver profile not found"));
-
+        Driver driver = getOrCreateDriver(currentUser);
         return calculateMonthlyPayout(driver, monthStr);
     }
 
@@ -455,7 +455,7 @@ public class DriverServiceImpl implements DriverService {
     }
 
     private DriverResponseDto mapToDto(Driver driver) {
-        boolean isExpired = driver.getLicenseExpiryDate().isBefore(LocalDate.now());
+        boolean isExpired = driver.getLicenseExpiryDate() != null && driver.getLicenseExpiryDate().isBefore(LocalDate.now());
 
         return DriverResponseDto.builder()
                 .id(driver.getId())

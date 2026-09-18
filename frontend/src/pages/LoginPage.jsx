@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { authService } from '../services/authService';
 import { ForgotPasswordModal } from '../components/auth/ForgotPasswordModal';
 import '../styles/versoLogin.css';
 
@@ -23,30 +24,17 @@ const ROLE_DEMO_ACCOUNTS = [
   {
     id: 'EMPLOYEE',
     label: 'Employee',
-    email: 'eren00987@gmail.com',
-    password: 'password123',
     role: 'EMPLOYEE',
   },
   {
     id: 'DRIVER',
     label: 'Driver',
-    email: 'driver@company.com',
-    password: 'password123',
     role: 'DRIVER',
   },
   {
     id: 'TRANSPORT_MANAGER',
     label: 'Manager',
-    email: 'manager@company.com',
-    password: 'password123',
     role: 'TRANSPORT_MANAGER',
-  },
-  {
-    id: 'CORPORATE_ADMIN',
-    label: 'Admin',
-    email: 'admin@company.com',
-    password: 'password123',
-    role: 'CORPORATE_ADMIN',
   },
 ];
 
@@ -87,18 +75,6 @@ const ROLE_CONTENT_MAP = {
       desc: 'Centralized corporate transport coordination, real-time dispatch, and intelligent fleet management.',
     },
   },
-  CORPORATE_ADMIN: {
-    login: {
-      chip: 'ADMINISTRATION CONSOLE',
-      title: 'Corporate Admin.',
-      desc: 'Manage corporate organizations, billing budgets, security policies, and enterprise analytics.',
-    },
-    signup: {
-      chip: 'ENTERPRISE ADMIN',
-      title: 'Empower enterprise.',
-      desc: 'Total control over employee travel policies, department quotas, and corporate vehicle fleet oversight.',
-    },
-  },
 };
 
 export default function LoginPage() {
@@ -114,8 +90,8 @@ export default function LoginPage() {
   const [selectedRole, setSelectedRole] = useState('EMPLOYEE');
 
   // Sign In Form States
-  const [loginEmail, setLoginEmail] = useState('eren00987@gmail.com');
-  const [loginPassword, setLoginPassword] = useState('password123');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [keepSignedIn, setKeepSignedIn] = useState(true);
 
@@ -137,19 +113,39 @@ export default function LoginPage() {
   const activeRole = mode === 'login' ? selectedRole : signupRole;
   const roleContent = ROLE_CONTENT_MAP[activeRole] || ROLE_CONTENT_MAP.EMPLOYEE;
 
-  // Sync mode if URL changes
+  // Track if user has manually focused or typed in inputs
+  const userInteractedRef = useRef(false);
+
+  // Sync mode if URL changes & reset form inputs so no dummy/saved values persist
   useEffect(() => {
     if (location.pathname === '/signup') {
       setMode('signup');
     } else if (location.pathname === '/login') {
       setMode('login');
     }
+    setLoginEmail('');
+    setLoginPassword('');
+    setSignupEmail('');
+    setSignupPassword('');
+    setSignupFullName('');
+    setApiError('');
   }, [location.pathname]);
+
+  // Prevent browser autofill from popping saved credentials on initial mount
+  useEffect(() => {
+    setLoginEmail('');
+    setLoginPassword('');
+    const timer = setTimeout(() => {
+      if (!userInteractedRef.current) {
+        setLoginEmail('');
+        setLoginPassword('');
+      }
+    }, 120);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleRoleSelect = (roleItem) => {
     setSelectedRole(roleItem.id);
-    setLoginEmail(roleItem.email);
-    setLoginPassword(roleItem.password);
     setApiError('');
   };
 
@@ -187,6 +183,42 @@ export default function LoginPage() {
     }
   };
 
+  // Real-time check when signup email is entered
+  useEffect(() => {
+    const clean = signupEmail.trim().toLowerCase();
+    if (!clean || !clean.includes('@') || mode !== 'signup') {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const exists = await authService.checkEmailExists(clean);
+        if (exists) {
+          setApiError('This email already exists. Please use a different email or sign in.');
+        } else if (apiError === 'This email already exists. Please use a different email or sign in.') {
+          setApiError('');
+        }
+      } catch {
+        // ignore
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [signupEmail, mode]);
+
+  const handleSignupEmailBlur = async () => {
+    const clean = signupEmail.trim().toLowerCase();
+    if (!clean || !clean.includes('@') || mode !== 'signup') return;
+    try {
+      const exists = await authService.checkEmailExists(clean);
+      if (exists) {
+        setApiError('This email already exists. Please use a different email or sign in.');
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   const handleSignupSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!signupFullName.trim() || !signupEmail.trim() || !signupPassword.trim()) {
@@ -201,6 +233,15 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setApiError('');
+
+      // Extra check at submission time
+      const exists = await authService.checkEmailExists(signupEmail.trim().toLowerCase());
+      if (exists) {
+        setApiError('This email already exists. Please use a different email or sign in.');
+        setLoading(false);
+        return;
+      }
+
       const formData = {
         fullName: signupFullName.trim(),
         email: signupEmail.trim(),
@@ -274,7 +315,7 @@ export default function LoginPage() {
 
               {/* Quick Demo Role Selector Pills */}
               <div className="verso-demo-roles">
-                <span className="verso-demo-roles-label">Select Role / Demo Account</span>
+                <span className="verso-demo-roles-label">Select Role</span>
                 <div className="verso-role-pills">
                   {ROLE_DEMO_ACCOUNTS.map((roleItem) => (
                     <button
@@ -296,15 +337,27 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <form onSubmit={handleLoginSubmit}>
+              <form onSubmit={handleLoginSubmit} autoComplete="off">
+                {/* Prevent browser credential manager from auto-populating saved passwords */}
+                <input type="text" style={{ display: 'none' }} tabIndex={-1} aria-hidden="true" autoComplete="off" />
+                <input type="password" style={{ display: 'none' }} tabIndex={-1} aria-hidden="true" autoComplete="new-password" />
+
                 <div className="verso-input-group">
                   <label className="verso-input-label">Username or email</label>
                   <div className="verso-input-field-wrap">
                     <input
                       type="text"
+                      name="app_user_login"
+                      id="app_user_login"
+                      autoComplete="off"
                       value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="name@company.com"
+                      onFocus={() => { userInteractedRef.current = true; }}
+                      onKeyDown={() => { userInteractedRef.current = true; }}
+                      onChange={(e) => {
+                        userInteractedRef.current = true;
+                        setLoginEmail(e.target.value);
+                      }}
+                      placeholder="Enter your email"
                       required
                       className="verso-input-field"
                     />
@@ -317,8 +370,16 @@ export default function LoginPage() {
                   <div className="verso-input-field-wrap">
                     <input
                       type={showLoginPassword ? 'text' : 'password'}
+                      name="app_user_password"
+                      id="app_user_password"
+                      autoComplete="new-password"
                       value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
+                      onFocus={() => { userInteractedRef.current = true; }}
+                      onKeyDown={() => { userInteractedRef.current = true; }}
+                      onChange={(e) => {
+                        userInteractedRef.current = true;
+                        setLoginPassword(e.target.value);
+                      }}
                       placeholder="Enter password"
                       required
                       className="verso-input-field"
@@ -368,7 +429,7 @@ export default function LoginPage() {
               </form>
 
               <div className="verso-switch-footer">
-                New to VERSO?{' '}
+                New to RideFlow?{' '}
                 <button
                   type="button"
                   onClick={() => {
@@ -408,12 +469,19 @@ export default function LoginPage() {
                   </p>
                 </div>
               ) : (
-                <form onSubmit={handleSignupSubmit}>
+                <form onSubmit={handleSignupSubmit} autoComplete="off">
+                  {/* Prevent browser credential manager from auto-populating saved passwords */}
+                  <input type="text" style={{ display: 'none' }} tabIndex={-1} aria-hidden="true" autoComplete="off" />
+                  <input type="password" style={{ display: 'none' }} tabIndex={-1} aria-hidden="true" autoComplete="new-password" />
+
                   <div className="verso-input-group">
                     <label className="verso-input-label">Full name</label>
                     <div className="verso-input-field-wrap">
                       <input
                         type="text"
+                        name="app_signup_fullname"
+                        id="app_signup_fullname"
+                        autoComplete="off"
                         value={signupFullName}
                         onChange={(e) => setSignupFullName(e.target.value)}
                         placeholder="Jane Doe"
@@ -429,9 +497,18 @@ export default function LoginPage() {
                     <div className="verso-input-field-wrap">
                       <input
                         type="email"
+                        name="app_signup_email"
+                        id="app_signup_email"
+                        autoComplete="off"
                         value={signupEmail}
-                        onChange={(e) => setSignupEmail(e.target.value)}
-                        placeholder="name@company.com"
+                        onChange={(e) => {
+                          setSignupEmail(e.target.value);
+                          if (apiError === 'This email already exists. Please use a different email or sign in.') {
+                            setApiError('');
+                          }
+                        }}
+                        onBlur={handleSignupEmailBlur}
+                        placeholder="Enter your email"
                         required
                         className="verso-input-field"
                       />

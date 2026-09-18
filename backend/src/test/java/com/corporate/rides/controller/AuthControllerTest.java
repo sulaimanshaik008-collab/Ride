@@ -63,6 +63,49 @@ public class AuthControllerTest {
     }
 
     @Test
+    void testSignup_Success() throws Exception {
+        UserProfileDto mockProfile = UserProfileDto.builder()
+                .id(UUID.randomUUID())
+                .organizationId(UUID.randomUUID())
+                .organizationName("Acme Corp")
+                .organizationCode("ACME")
+                .email("newuser@company.com")
+                .fullName("New User")
+                .role(UserRole.EMPLOYEE)
+                .build();
+
+        when(authService.signup(org.mockito.ArgumentMatchers.any(LoginRequestDto.class))).thenReturn(mockProfile);
+
+        LoginRequestDto request = new LoginRequestDto();
+        request.setEmail("newuser@company.com");
+        request.setFullName("New User");
+
+        mockMvc.perform(post("/api/v1/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.email").value("newuser@company.com"))
+                .andExpect(jsonPath("$.data.fullName").value("New User"));
+    }
+
+    @Test
+    void testSignup_DuplicateEmail() throws Exception {
+        when(authService.signup(org.mockito.ArgumentMatchers.any(LoginRequestDto.class)))
+                .thenThrow(new IllegalArgumentException("This email already exists. Please use a different email or sign in."));
+
+        LoginRequestDto request = new LoginRequestDto();
+        request.setEmail("existing@company.com");
+
+        mockMvc.perform(post("/api/v1/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("This email already exists. Please use a different email or sign in."));
+    }
+
+    @Test
     void testGetCurrentUser_Success() throws Exception {
         UserProfileDto mockProfile = UserProfileDto.builder()
                 .id(UUID.randomUUID())
