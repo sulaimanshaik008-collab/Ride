@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
+// Use the repository path for GitHub Pages, but the site root on Vercel.
+const base = process.env.VERCEL ? '/' : '/Ride/'
+
 export default defineConfig({
   plugins: [react()],
-  base:'/Ride/',
+  base,
   server: {
     port: 5173,
     proxy: {
